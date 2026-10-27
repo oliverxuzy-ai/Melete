@@ -181,6 +181,8 @@ struct Metrics: Codable, Hashable {
     let sentences: SentenceStats
     let loudness: Loudness?
     let pitch: Pitch?
+    /// Sentence-level intonation (prosody.py); missing on recordings analysed before it.
+    @Lossy var prosody: Prosody?
     let lowConfidenceWords: Int
     let transcript: String
     let words: [Word]?
@@ -210,6 +212,160 @@ struct Session: Codable, Hashable, Identifiable {
     var drill: Drill?
     let metrics: Metrics
     var review: Review?
+    /// Notes on how the take sounds, from a cloud audio model; nil when that is off.
+    @Lossy var listen: ListenNotes?
+}
+
+// MARK: - Prosody and listening notes
+
+/// Decodes a value, or nil when it is missing or shaped differently than expected, so a new
+/// or changed field never stops a whole recording from loading.
+@propertyWrapper
+struct Lossy<T: Codable & Hashable>: Codable, Hashable {
+    var wrappedValue: T?
+    init(wrappedValue: T?) { self.wrappedValue = wrappedValue }
+    init(from decoder: Decoder) throws { wrappedValue = try? T(from: decoder) }
+    func encode(to encoder: Encoder) throws {
+        var c = encoder.singleValueContainer()
+        try c.encode(wrappedValue)
+    }
+}
+
+extension KeyedDecodingContainer {
+    func decode<T: Codable & Hashable>(_ type: Lossy<T>.Type, forKey key: Key) throws -> Lossy<T> {
+        (try? decodeIfPresent(type, forKey: key)) ?? Lossy(wrappedValue: nil)
+    }
+}
+
+struct ProsodyEnding: Codable, Hashable {
+    let dir: String            // fall | rise | level
+    let change: Double         // semitones over the sentence's last half second
+}
+
+struct ProsodyStress: Codable, Hashable {
+    let w: Int                 // index into the recording's words
+    let word: String
+    let score: Double
+    let clear: Bool
+}
+
+struct ProsodySentence: Codable, Hashable, Identifiable {
+    let i: Int
+    let text: String
+    let start: Double
+    let end: Double
+    let pace: Double?
+    let range: Double?
+    let ending: ProsodyEnding?
+    let fades: Bool?
+    let stress: ProsodyStress?
+    var id: Int { i }
+
+    enum CodingKeys: String, CodingKey { case i, text, start, end, pace, range, ending = "final", fades, stress }
+}
+
+struct MonotoneStretch: Codable, Hashable {
+    let start: Double
+    let end: Double
+    let range: Double
+}
+
+struct ProsodySummary: Codable, Hashable {
+    let sentences: Int
+    let endings: [String: Int]
+    let fades: Int
+    let stressJudged: Int
+    let stressShare: Double?
+    let monotone: [MonotoneStretch]
+    let monotoneSec: Double
+    let monotoneShare: Double
+    let paceCv: Double?
+    let rangeMedian: Double?
+
+    enum CodingKeys: String, CodingKey {
+        case sentences, endings = "final", fades, stressJudged, stressShare, monotone, monotoneSec, monotoneShare, paceCv, rangeMedian
+    }
+}
+
+/// Pitch and level every `step` seconds, each series base64 of signed bytes.
+struct ProsodyTrack: Codable, Hashable {
+    let step: Double
+    let medianHz: Double
+    let st: String
+    let db: String
+
+    /// Semitones from your median pitch; nil where there was no voice.
+    var pitch: [Double?] {
+        guard let d = Data(base64Encoded: st) else { return [] }
+        return d.map { b in
+            let v = Int8(bitPattern: b)
+            return v == -128 ? nil : Double(v) / 10
+        }
+    }
+}
+
+struct ShadowRow: Codable, Hashable, Identifiable {
+    let i: Int
+    let text: String
+    let start: Double
+    let end: Double
+    let similarity: Double?
+    let rangeRatio: Double?
+    let refFinal: String?
+    let yourFinal: String?
+    let refStress: String?
+    let yourStress: String?
+    let refContour: [Double]
+    let yourContour: [Double]
+    var id: Int { i }
+}
+
+struct ShadowSummary: Codable, Hashable {
+    let compared: Int
+    let of: Int
+    let similarity: Double?
+    let rangeRatio: Double?
+    let sameFinal: Double?
+    let sameStress: Double?
+    let worst: [Int]
+}
+
+struct ShadowProsody: Codable, Hashable {
+    let sentences: [ShadowRow]
+    let summary: ShadowSummary
+}
+
+struct Prosody: Codable, Hashable {
+    let track: ProsodyTrack
+    let sentences: [ProsodySentence]
+    let summary: ProsodySummary
+    @Lossy var shadow: ShadowProsody?
+}
+
+struct ListenOverall: Codable, Hashable {
+    let tone: String
+    let confidence: Int?
+    let energy: Int?
+    let summary: String
+    let tip: String
+}
+
+struct ListenSentence: Codable, Hashable {
+    let i: Int
+    let tone: String
+    let confidence: Int?
+    let note: String
+}
+
+struct ListenNotes: Codable, Hashable {
+    let status: String         // pending | done | error | skipped
+    let model: String?
+    let overall: ListenOverall?
+    let sentences: [ListenSentence]?
+    let error: String?
+    let reason: String?
+    var isPending: Bool { status == "pending" }
+    var isDone: Bool { status == "done" && overall != nil }
 }
 
 struct RefSentence: Codable, Hashable, Identifiable {
@@ -517,6 +673,12 @@ struct Recap: Codable, Hashable {
     let next: RecapBlock
 }
 
+struct ListenSettings: Codable, Hashable {
+    var enabled: Bool
+    var model: String
+    var hasKey: Bool?
+}
+
 struct DailySettings: Codable, Hashable {
     var enabled: Bool
     var clipsPerDay: Int
@@ -543,6 +705,7 @@ struct ToolsInfo: Codable, Hashable {
 struct SettingsPayload: Codable {
     var daily: DailySettings
     var coach: CoachSettings
+    var listen: ListenSettings?
     let tools: ToolsInfo
     let blocks: [BlockInfo]
 }

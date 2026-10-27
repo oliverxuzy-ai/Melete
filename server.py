@@ -27,7 +27,9 @@ import coach
 import coverage
 import daily
 import i18n
+import listen
 import paths
+import prosody
 import shadow
 from i18n import t
 
@@ -144,7 +146,8 @@ def summarize(s: dict) -> dict:
 
 
 def attach_practice(s: dict, pid: str | None) -> None:
-    """Link (or unlink) a session and recompute coverage against the practice script."""
+    """Link (or unlink) a session and recompute coverage against the practice script, and
+    for shadowing the sentence-by-sentence tune against the reference."""
     if pid:
         practice = load_practice(pid)
         s["practice_id"] = pid
@@ -152,6 +155,54 @@ def attach_practice(s: dict, pid: str | None) -> None:
     else:
         s["practice_id"] = None
         s["metrics"]["coverage"] = None
+    if s["metrics"].get("prosody"):
+        s["metrics"]["prosody"]["shadow"] = shadow_prosody(s, pid) if pid else None
+
+
+def reference_prosody(pid: str, ref: dict) -> dict | None:
+    """The reference speaker's prosody; references made before it existed get it once, here."""
+    pros = (ref.get("metrics") or {}).get("prosody")
+    if pros and pros.get("track"):
+        return pros
+    try:
+        audio = analysis.decode_audio(str(practice_path(pid) / ref["audio_file"]), sampling_rate=analysis.SAMPLE_RATE)
+        pros = prosody.analyze(audio, ref.get("words") or [], ref.get("language", "en"))
+    except Exception as e:
+        print("reference prosody failed:", pid, repr(e))
+        return None
+    if pros:
+        ref.setdefault("metrics", {})["prosody"] = pros
+        save_reference(pid, ref)
+    return pros
+
+
+def shadow_prosody(s: dict, pid: str) -> dict | None:
+    """Your tune against the reference, for takes read along with it (not retellings)."""
+    kind = (s.get("drill") or {}).get("kind")
+    if kind and kind != "shadow":
+        return None
+    ref = load_reference(pid)
+    pros = s["metrics"].get("prosody") or {}
+    if not ref or not ref.get("sentences") or not pros.get("track") or ref.get("language") != s["metrics"].get("language"):
+        return None
+    rp = reference_prosody(pid, ref)
+    if not rp:
+        return None
+    try:
+        return prosody.compare(prosody.Track.from_json(rp["track"]), ref.get("words") or [], ref["sentences"],
+                               prosody.Track.from_json(pros["track"]), s["metrics"].get("words") or [],
+                               s["metrics"]["language"])
+    except Exception as e:
+        print("shadow prosody failed:", s.get("id"), repr(e))
+        return None
+
+
+def refresh_shadow(pid: str) -> None:
+    """The reference changed: compare every take of the practice again."""
+    for s in all_sessions():
+        if s.get("practice_id") == pid and s["metrics"].get("prosody"):
+            s["metrics"]["prosody"]["shadow"] = shadow_prosody(s, pid)
+            save_session(s)
 
 
 # ---------- practices ----------
@@ -277,6 +328,7 @@ def create_session(audio: UploadFile = File(...), language: str = Form("en"),
     }
     attach_practice(session, practice_id or None)
     save_session(session)
+    listen.start(folder, session, coach.load_settings(), i18n.lang())
     return with_review(session)
 
 
@@ -298,6 +350,7 @@ def with_review(s: dict) -> dict:
     tg = coach.targets(block, coach.baseline([x for x in sessions if x["created_at"] < s["created_at"]] or sessions))
     out = dict(s)
     out["review"] = coach.review(s, coach.previous_attempt(s, sessions), block, tg)
+    out["listen"] = listen.state(DATA / s["id"])
     return out
 
 
@@ -331,7 +384,23 @@ def reanalyze_session(sid: str, body: dict | None = None):
         s[k] = metrics[k]
     attach_practice(s, s.get("practice_id"))
     save_session(s)
+    listen.start(session_path(sid), s, coach.load_settings(), i18n.lang())   # sentences are numbered anew
     return with_review(s)
+
+
+@app.get("/api/sessions/{sid}/listen")
+def get_listen(sid: str):
+    """The listening notes: pending, done, error, skipped, or off (null) without a key."""
+    return listen.state(session_path(sid))
+
+
+@app.post("/api/sessions/{sid}/listen")
+def run_listen(sid: str):
+    """Ask for the listening notes again (after an error, or with another model)."""
+    settings = coach.load_settings()
+    if not listen.ready(settings):
+        raise HTTPException(409, t("还没有保存 OpenRouter key。", "No OpenRouter key saved yet."))
+    return listen.start(session_path(sid), load_session(sid), settings, i18n.lang())
 
 
 @app.delete("/api/sessions/{sid}")
@@ -492,6 +561,7 @@ def upload_reference(pid: str, audio: UploadFile = File(...), transcript: str = 
     save_reference(pid, ref)
     if transcript.strip() and not p["script"].strip():
         set_script(p, transcript)
+    refresh_shadow(pid)
     return get_practice(pid)
 
 
@@ -506,6 +576,7 @@ def retime_reference(pid: str, body: dict):
     ref["subtitles_from"] = "transcript" if transcript.strip() else "whisper"
     ref["sentences"] = shadow.build_sentences(ref["words"], transcript)
     save_reference(pid, ref)
+    refresh_shadow(pid)
     return get_practice(pid)
 
 
@@ -522,6 +593,7 @@ def delete_reference(pid: str):
     folder = practice_path(pid)
     for f in folder.glob("reference.*"):
         f.unlink()
+    refresh_shadow(pid)
     return get_practice(pid)
 
 
@@ -769,6 +841,15 @@ def put_settings(body: dict):
         dl.pop("claude_api_key")   # unchanged
     if dl:
         patch["daily"] = dl
+    ls = dict(patch.get("listen") or {})
+    if "openrouter_api_key" in ls and ls["openrouter_api_key"] in (None, "********"):
+        ls.pop("openrouter_api_key")   # unchanged
+    if "model" in ls and not str(ls["model"] or "").strip():
+        ls.pop("model")
+    if ls:
+        patch["listen"] = ls
+    else:
+        patch.pop("listen", None)
     coach.update_settings(patch)
     return get_settings()
 

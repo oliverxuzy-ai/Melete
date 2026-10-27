@@ -487,6 +487,13 @@ final class StageModel {
         if let session {
             result = session
             phase = .result
+            if session.listen?.isPending == true {   // the listening notes land a little later
+                let id = session.id
+                Task { [weak self] in
+                    guard let notes = await state.awaitListen(id) else { return }
+                    if self?.result?.id == id { self?.result?.listen = notes }
+                }
+            }
         } else {
             phase = state.isReady ? .ready : .queued
         }
@@ -781,6 +788,7 @@ struct VerdictCard: View {
                             Text(line).font(Typeface.ui(14)).foregroundStyle(Palette.ink).fixedSize(horizontal: false, vertical: true)
                         }
                     }
+                    if let l = session.listen { VerdictListenLine(listen: l) }
                 }
             } else {
                 Text(L("录好了", "Recorded")).font(Typeface.display(38))
@@ -802,6 +810,27 @@ struct VerdictCard: View {
         .frame(maxWidth: 760, alignment: .leading)
         .paper(radius: Radius.stage)
         .onGeometryChange(for: CGRect.self) { $0.frame(in: .global) } action: { FrameProbe.verdictFrame = $0 }
+    }
+}
+
+/// One line from the listening notes under the verdict: a spinner while the model listens,
+/// then its impression of the take. Failures stay in the full analysis.
+struct VerdictListenLine: View {
+    let listen: ListenNotes
+
+    var body: some View {
+        if listen.isPending {
+            HStack(spacing: 8) {
+                ProgressView().controlSize(.mini)
+                Text(L("正在听语气…", "Listening to how it sounds…")).font(Typeface.ui(13)).foregroundStyle(Palette.ink2)
+            }
+        } else if let o = listen.overall, listen.isDone {
+            HStack(alignment: .firstTextBaseline, spacing: 10) {
+                Circle().fill(Palette.kyanos).frame(width: 5, height: 5).offset(y: -3)
+                Text(L("听感：", "How it sounds: ") + o.tone + L("。", ". ") + o.summary)
+                    .font(Typeface.italic(14)).foregroundStyle(Palette.ink).fixedSize(horizontal: false, vertical: true)
+            }
+        }
     }
 }
 

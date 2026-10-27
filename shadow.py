@@ -55,7 +55,8 @@ def sentences_from_words(words: list[dict]) -> list[dict]:
         )
         if end:
             joiner = "" if all(_TOKEN.fullmatch(x["text"].strip(" ,.，。")) and re.match(r"[一-鿿]", x["text"]) for x in cur) else " "
-            out.append({"text": joiner.join(x["text"] for x in cur).strip(), "start": cur[0]["start"], "end": cur[-1]["end"]})
+            out.append({"text": joiner.join(x["text"] for x in cur).strip(), "start": cur[0]["start"], "end": cur[-1]["end"],
+                        "w0": k + 1 - len(cur), "w1": k + 1})   # the sentence's words: words[w0:w1]
             cur = []
     return out
 

@@ -1,7 +1,8 @@
 """Coaching layer: training blocks, targets taken from your own recordings, a prompt bank,
 today's plan, prep plans for real talks, one-line feedback and the weekly recap.
 
-Everything here is a heuristic over data already on disk. Nothing calls the network.
+Everything here is a heuristic over data already on disk. Nothing calls the network
+(the listening notes in listen.py are fetched separately and only shown, never scored).
 
 The curriculum follows the most common feedback on spoken delivery: speak faster
 and louder first, then tone and pauses, then storytelling, then changing register for
@@ -43,6 +44,11 @@ DEFAULT_SETTINGS = {
     },
     "ui": {
         "language": "zh",           # the app's interface language, so background jobs write in it too
+    },
+    "listen": {                     # listening notes from a cloud audio model, see listen.py
+        "enabled": True,            # sends nothing until an OpenRouter key is saved
+        "model": "google/gemini-3.8-flash",
+        "openrouter_api_key": "",
     },
 }
 
@@ -90,6 +96,8 @@ def public_settings(s: dict) -> dict:
     out = json.loads(json.dumps(s))
     out["daily"]["has_claude_key"] = bool(s["daily"].get("claude_api_key"))
     out["daily"].pop("claude_api_key", None)
+    out["listen"]["has_key"] = bool(s["listen"].get("openrouter_api_key"))
+    out["listen"].pop("openrouter_api_key", None)
     return out
 
 
@@ -111,7 +119,7 @@ BLOCKS = [
      "why_en": "First the two basics: speak a little faster and a little louder. Every point you make in a meeting, an update or a review starts here.",
      "tip_en": "Know your first sentence before you start; work out the rest as you go. Don't trail off at the end of a sentence."},
     {"key": "tonos", "greek": "Τόνος", "name": "语调与停顿", "weeks": 2,
-     "focus": ["pitch", "fillers"],
+     "focus": ["stress", "pitch", "fillers"],
      "why": "语调平，听众就跟不住。这两周练重读和停顿。",
      "tip": "每句挑一个关键词重读。想停的时候就停，用停顿代替 um 和 like。",
      "name_en": "Tone and pauses",
@@ -198,8 +206,15 @@ def baseline(sessions: list[dict]) -> dict:
         "pitch": med([(s["metrics"].get("pitch") or {}).get("range_semitones") for s in pool], 7.0),
         "loudness": med([(s["metrics"].get("loudness") or {}).get("mean_db") for s in recent], -28.0),
         "fillers": med([s["metrics"]["fillers"]["per_minute"] for s in pool], 4.0),
+        "stress": med([_stress_share(s) for s in pool], 40.0),
         "count": len(pool),
     }
+
+
+def _stress_share(s: dict) -> float | None:
+    """Share of sentences with a clearly stressed word (prosody.py), when enough were judged."""
+    ps = (s["metrics"].get("prosody") or {}).get("summary") or {}
+    return ps.get("stress_share") if (ps.get("stress_judged") or 0) >= 3 else None
 
 
 def _round5(x: float) -> int:
@@ -217,6 +232,7 @@ def targets(block: dict, base: dict) -> dict:
         "pitch": round(max(base["pitch"] + 2.0, 8.5), 1),
         "loudness": round(base["loudness"] - 3.0, 1),   # not quieter than your recent self
         "fillers": round(max(1.5, base["fillers"] * 0.7), 1),
+        "stress": min(80, max(50, _round5(base.get("stress", 40.0) + 10))),
     }
 
 
@@ -626,6 +642,7 @@ def review(session: dict, previous: dict | None, block: dict, tg: dict) -> dict:
     zh = m.get("language", "en").startswith("zh")
     unit = t("字/分", "chars/min") if zh else t("词/分", "wpm")
     lines: list[str] = []
+    deferred: list[str] = []
     focus: list[dict] = []
 
     wpm = m["wpm"]
@@ -649,8 +666,12 @@ def review(session: dict, previous: dict | None, block: dict, tg: dict) -> dict:
             faster = wpm > prev_wpm
             moved = t(f"，比上一遍{'快' if faster else '慢'} {abs(round(wpm - prev_wpm))}",
                       f", {abs(round(wpm - prev_wpm))} {'faster' if faster else 'slower'} than last time")
-        lines.append(t(f"语速 {round(wpm)} {unit}，在目标带 {band} 里{moved}。",
-                       f"Pace {round(wpm)} {unit}, inside the target band of {band}{moved}."))
+        pace_ok = t(f"语速 {round(wpm)} {unit}，在目标带 {band} 里{moved}。",
+                    f"Pace {round(wpm)} {unit}, inside the target band of {band}{moved}.")
+        if block["key"] == "tonos":
+            deferred.append(pace_ok)   # in the tone block the sentence-level findings come first
+        else:
+            lines.append(pace_ok)
 
     pitch = (m.get("pitch") or {}).get("range_semitones")
     if pitch is not None:
@@ -663,6 +684,8 @@ def review(session: dict, previous: dict | None, block: dict, tg: dict) -> dict:
             lines.append(t(f"音高起伏 {pitch} 半音，偏平。每句挑一个关键词，重读并把音调抬上去。",
                            f"Pitch range {pitch} semitones, on the flat side. Pick one key word in each sentence, "
                            "stress it and lift your pitch."))
+
+    _prosody_review(m, previous, block, tg, zh, lines, deferred, focus)
 
     fpm = m["fillers"]["per_minute"]
     top = next(iter(m["fillers"].get("breakdown") or {}), None)
@@ -696,6 +719,8 @@ def review(session: dict, previous: dict | None, block: dict, tg: dict) -> dict:
             lines.append(t(f"漏掉了 {len(missed)} 个要点，比如「{first}」。",
                            f"Missed {len(missed)} key point{'s' if len(missed) != 1 else ''}, such as “{first}”."))
 
+    lines.extend(deferred)
+
     # Headline: the block's first focus that is off target, otherwise the best news.
     order = block["focus"] or ["wpm"]
     off = [f for k in order for f in focus if f["key"] == k and f["state"] != "in"]
@@ -704,11 +729,104 @@ def review(session: dict, previous: dict | None, block: dict, tg: dict) -> dict:
         headline = {"wpm": t("语速还要再提一点", "Pick up the pace a little") if f["state"] == "low"
                            else t("语速偏快，留点停顿", "A bit fast; leave some pauses"),
                     "pitch": t("语调还偏平", "Still a little flat"), "fillers": t("填充词偏多", "Too many fillers"),
+                    "stress": t("重读还不明显", "Stress one word per sentence"),
+                    "melody": t("语调还没跟上原声", "Not yet the speaker's tune"),
                     "loudness": t("声音再大一点", "A little louder"),
                     "coverage": t("要点漏了几个", "A few key points missed")}.get(f["key"], t("继续", "Keep going"))
     else:
         headline = t("这一遍达标了", "On target this time") if focus else t("录好了", "Recorded")
     return {"headline": headline, "lines": lines[:3], "focus": focus, "block": block["key"]}
+
+
+def _clip(text: str, n: int) -> str:
+    text = text.strip()
+    return text if len(text) <= n else text[:n].rstrip() + "…"
+
+
+def _clock(sec: float) -> str:
+    sec = int(round(sec))
+    return f"{sec // 60}:{sec % 60:02d}"
+
+
+_ENDING = {"fall": ("下沉", "falls"), "rise": ("上扬", "rises"), "level": ("拖平", "stays level")}
+
+
+def _melody_line(r: dict) -> str:
+    """The shadowed sentence furthest from the speaker, and what differs."""
+    text = _clip(r["text"], 30)
+    ref, yours = r.get("ref_final"), r.get("your_final")
+    if ref and yours and ref != yours:
+        return t(f"跟原声比，「{text}」这句差得最多：原声句尾{_ENDING[ref][0]}，你的{_ENDING[yours][0]}。",
+                 f"Against the speaker, “{text}” is furthest off: their ending {_ENDING[ref][1]}, yours {_ENDING[yours][1]}.")
+    if r.get("ref_stress") and (r.get("your_stress") or "").lower() != r["ref_stress"].lower():
+        rs, ys = r["ref_stress"], r.get("your_stress")
+        return t(f"跟原声比，「{text}」这句差得最多：原声重读「{rs}」，" + (f"你重读的是「{ys}」。" if ys else "你没有明显的重读。"),
+                 f"Against the speaker, “{text}” is furthest off: they stress “{rs}”, "
+                 + (f"you stress “{ys}”." if ys else "you stress nothing in particular."))
+    return t(f"跟原声比，「{text}」这句的语调走向差得最多。回放这一句，再跟一遍。",
+             f"Against the speaker, the tune of “{text}” is furthest off. Replay that sentence and shadow it again.")
+
+
+def _prosody_review(m: dict, previous: dict | None, block: dict, tg: dict, zh: bool,
+                    lines: list[str], deferred: list[str], focus: list[dict]) -> None:
+    """Sentence-level findings from prosody.py: tune against the reference when shadowing,
+    stressed words, and in the tone block one more of monotone stretches, rising statements
+    or fading ends. In the pace-and-volume block fading ends come after the block's own lines."""
+    pros = m.get("prosody") or {}
+    ps = pros.get("summary") or {}
+    sents = pros.get("sentences") or []
+    prev_pros = ((previous or {}).get("metrics") or {}).get("prosody") or {}
+
+    sh = pros.get("shadow") or {}
+    shs = sh.get("summary") or {}
+    if shs.get("similarity") is not None:
+        sim = shs["similarity"]
+        prev_sim = ((prev_pros.get("shadow") or {}).get("summary") or {}).get("similarity")
+        st = "in" if sim >= 60 else "low"
+        focus.insert(1, {"key": "melody", "label": t("语调贴合", "Tune match"), "value": sim, "unit": "%",
+                         "target": "≥ 60", "state": st, "delta": sim - prev_sim if prev_sim is not None else None})
+        worst = next((r for r in sh.get("sentences") or [] if shs.get("worst") and r["i"] == shs["worst"][0]), None)
+        if worst and st == "low":
+            lines.append(_melody_line(worst))
+
+    if block["key"] == "tonos" and ps.get("stress_share") is not None and (ps.get("stress_judged") or 0) >= 3:
+        share, judged = ps["stress_share"], ps["stress_judged"]
+        prev_share = _stress_share(previous) if previous else None
+        st = "in" if share >= tg["stress"] else "low"
+        focus.append({"key": "stress", "label": t("有重读的句子", "Stressed sentences"), "value": share, "unit": "%",
+                      "target": f"≥ {tg['stress']}", "state": st,
+                      "delta": round(share - prev_share) if prev_share is not None else None})
+        if st == "low":
+            clear = round(share * judged / 100)
+            ex = next((x for x in sents if x.get("stress") and not x["stress"]["clear"] and len(x["text"]) >= 8), None)
+            lines.append(t(f"{judged} 句里有 {clear} 句听得出重读词"
+                           + (f"，「{_clip(ex['text'], 30)}」整句没有重点" if ex else "")
+                           + "。每句挑一个关键词，说得更高、更响、稍慢一点。",
+                           f"{clear} of {judged} sentences have a word that stands out"
+                           + (f"; “{_clip(ex['text'], 30)}” has none" if ex else "")
+                           + ". Pick one key word per sentence and say it higher, louder and a touch slower."))
+
+    extra = []
+    if block["key"] == "tonos" and ps.get("monotone"):
+        f = max(ps["monotone"], key=lambda x: x["end"] - x["start"])
+        dur = round(f["end"] - f["start"])
+        extra.append(t(f"{_clock(f['start'])}–{_clock(f['end'])} 这 {dur} 秒音高几乎没有起伏。回放听一下，这里正适合加一个重读。",
+                       f"From {_clock(f['start'])} to {_clock(f['end'])} ({dur} s) your pitch barely moves. "
+                       "Play it back: that's the place to stress a word."))
+    if block["key"] == "tonos" and not zh:
+        ups = [x for x in sents if (x.get("final") or {}).get("dir") == "rise" and not x["text"].rstrip().endswith("?")]
+        ended = sum((ps.get("final") or {}).values())
+        if len(ups) >= 2 and len(ups) >= 0.3 * ended:
+            extra.append(t(f"有 {len(ups)} 句陈述句句尾上扬，比如「{_clip(ups[0]['text'], 30)}」，听起来像在提问。陈述句的句尾往下收。",
+                           f"{len(ups)} statements rise at the end, such as “{_clip(ups[0]['text'], 30)}”, "
+                           "so they sound like questions. Let statements fall at the end."))
+    fading = [x for x in sents if x.get("fades")]
+    if block["key"] in ("tachos", "tonos") and len(fading) >= 2:
+        (extra if block["key"] == "tonos" else deferred).append(t(f"有 {len(fading)} 句句尾的音量掉下去了，比如「{_clip(fading[0]['text'], 30)}」。最后一个词也要送到。",
+                       f"{len(fading)} sentences fade out at the end, such as “{_clip(fading[0]['text'], 30)}”. "
+                       "Carry your voice through the last word."))
+    if extra:
+        lines.append(extra[0])
 
 
 def previous_attempt(session: dict, sessions: list[dict]) -> dict | None:
