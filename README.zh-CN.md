@@ -16,6 +16,7 @@
 ![macOS 26+](https://img.shields.io/badge/macOS-26%2B-1A1916?style=flat-square&logo=apple)
 ![Apple Silicon](https://img.shields.io/badge/Apple%20Silicon-arm64-1A1916?style=flat-square)
 ![本地优先](https://img.shields.io/badge/%E6%95%B0%E6%8D%AE-%E5%8F%AA%E5%9C%A8%E6%9C%AC%E6%9C%BA-3B7650?style=flat-square)
+[![MIT 许可证](https://img.shields.io/github/license/oliverxuzy-ai/Melete?style=flat-square&color=1A1916)](LICENSE)
 
 </div>
 
@@ -236,3 +237,7 @@ cd Melete
 - [yt-dlp](https://github.com/yt-dlp/yt-dlp) 和 [FFmpeg](https://ffmpeg.org)
 - [ntfy](https://ntfy.sh)：手机提醒
 - 设计参考：The Browser Company 的 Dia、bencho.dev、60fps.design、Benji Taylor 的 Family
+
+## 许可证
+
+Melete 以 [MIT 许可证](LICENSE) 发布。
