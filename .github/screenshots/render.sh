@@ -74,9 +74,15 @@ for lang in en zh; do
     exit 1
   fi
 
-  echo "== $lang: rendering $PAGES"
   ok=true
-  render "$lang" || ok=false
+  if [ "$lang" = zh ]; then
+    # Chinese text cascades to Songti SC and Kaiti SC, which macOS downloads on demand.
+    # shellcheck disable=SC2046 # one argument per font name
+    xcrun swift .github/screenshots/fetch-fonts.swift \
+      $(grep -oE '"ST[A-Za-z-]+"' native/Sources/SpeechPractice/Theme.swift | tr -d '"' | sort -u) || ok=false
+  fi
+  echo "== $lang: rendering $PAGES"
+  if [ "$ok" = true ]; then render "$lang" || ok=false; fi
   kill "$server"
   wait "$server" 2>/dev/null || true
   server=""
