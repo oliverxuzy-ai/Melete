@@ -46,7 +46,7 @@ DEFAULT_SOURCES = [
     {"id": "tfts", "name": "Think Fast, Talk Smart", "query": "Think Fast Talk Smart Matt Abrahams communication",
      "kind": "search", "role": "story", "enabled": True, "weight": 1},
     {"id": "aicouncil", "name": "AI Council (Data Council)", "url": "https://www.youtube.com/@aicouncilconf/videos",
-     "kind": "talk", "role": "explain", "enabled": True, "weight": 3},
+     "kind": "talk", "role": "story", "enabled": True, "weight": 3},
     {"id": "dbt", "name": "dbt Labs · Coalesce", "url": "https://www.youtube.com/@dbt-labs/videos",
      "kind": "talk", "role": "explain", "enabled": True, "weight": 2},
     {"id": "aie", "name": "AI Engineer", "url": "https://www.youtube.com/@aiDotEngineer/videos",
