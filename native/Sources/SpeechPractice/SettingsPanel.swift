@@ -3,7 +3,7 @@ import AppKit
 
 /// Settings, as a tray in the same materials as the rest of Melete: one section at a time
 /// (how practice starts, reminders, where clips come from, the training cycle, Claude, the
-/// listening notes, data, the interface language),
+/// listening notes, data, updates, the interface language),
 /// chosen by the chips at the top, so a section fits the frame instead of one long scroll.
 struct SettingsPanel: View {
     @Environment(AppState.self) private var state
@@ -12,6 +12,7 @@ struct SettingsPanel: View {
     private var sections: [(String, String)] {
         [("start", L("开始", "Start")), ("remind", L("提醒", "Reminders")), ("clips", L("片段", "Clips")),
          ("cycle", L("周期", "Cycle")), ("claude", "Claude"), ("listen", L("听感", "Listening")), ("data", L("数据", "Data")),
+         ("update", L("更新", "Updates")),
          // Both names, so the way back is readable from either language.
          ("language", isEnglishUI ? "Language · 语言" : "语言 · Language")]
     }
@@ -31,6 +32,7 @@ struct SettingsPanel: View {
                     case "claude": ClaudeSettings()
                     case "listen": ListenSettingsView()
                     case "data": DataSettings()
+                    case "update": UpdateSettings()
                     case "language": LanguageSettings()
                     default: StartSettings()
                     }
@@ -41,6 +43,11 @@ struct SettingsPanel: View {
             }
         }
         .task { await state.loadSettings() }
+        .onChange(of: state.settingsSection, initial: true) { _, wanted in
+            guard let wanted else { return }
+            section = wanted
+            state.settingsSection = nil
+        }
     }
 }
 

@@ -46,8 +46,10 @@ struct RootView: View {
             guard !stage.isActive else { return }
             Task { await state.openTray(.newTopic) }
         }
-        .onReceive(NotificationCenter.default.publisher(for: .openSettings)) { _ in
+        .onReceive(NotificationCenter.default.publisher(for: .openSettings)) { note in
             guard !stage.isActive else { return }
+            // The object, when there is one, names the section to show ("update").
+            state.settingsSection = note.object as? String
             Task { await state.openTray(.settings) }
         }
         .onReceive(NotificationCenter.default.publisher(for: .toggleRecording)) { _ in
@@ -268,19 +270,21 @@ struct TopBarTrailing: View {
 
 // MARK: - Service status
 
-/// The analysis service starts in the background; recording never waits for it.
+/// The analysis service starts in the background; recording never waits for it. A new
+/// version of Melete is offered just below.
 struct ServerToast: View {
     @Environment(AppState.self) private var state
 
     var body: some View {
-        VStack {
+        VStack(spacing: 8) {
             content
                 .transition(.move(edge: .top).combined(with: .opacity))
+                .allowsHitTesting(key != "ready")
+            UpdateToast()
             Spacer()
         }
         .padding(.top, 6)
         .animation(Motion.glass, value: key)
-        .allowsHitTesting(key != "ready")
     }
 
     private var key: String {
