@@ -10,7 +10,9 @@ set -eu
 cd "$(dirname "$0")/../.."
 
 OUT=.github/assets/screenshots
-PAGES=${PAGES:-window-home,window-shadow-min,window-retell-listen-min,window-verdict-min}
+# The README set: Overview, Shadowing mid-take, Retell before speaking, and a Topics prompt
+# (window-verdict-min, which shows the prompt when no take is open).
+PAGES=${PAGES:-window-home,window-shadow-min,window-retell-min,window-verdict-min}
 PORT=${SCREENSHOT_PORT:-8790}
 APP=dist/Melete.app/Contents/MacOS/SpeechPractice
 PY=.venv/bin/python

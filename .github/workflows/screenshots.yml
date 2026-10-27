@@ -8,8 +8,8 @@ on:
   workflow_dispatch:
     inputs:
       pages:
-        description: Pages to draw (names in native/Sources/SpeechPractice/RenderHarness.swift)
-        default: window-home,window-shadow-min,window-retell-listen-min,window-verdict-min
+        description: Pages to draw, comma separated (names in RenderHarness.swift); blank for the README set
+        default: ""
   pull_request:
     paths:
       - ".github/screenshots/**"
@@ -73,7 +73,7 @@ jobs:
 
       - name: Seed demo data and draw
         env:
-          PAGES: ${{ inputs.pages || 'window-home,window-shadow-min,window-retell-listen-min,window-verdict-min' }}
+          PAGES: ${{ inputs.pages }}
         run: .github/screenshots/render.sh
 
       # Whatever was drawn is kept, even when one language failed.
