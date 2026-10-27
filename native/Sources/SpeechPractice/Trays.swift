@@ -61,7 +61,7 @@ struct TraySheet: View {
         HStack(alignment: .center, spacing: 14) {
             if state.trayBack != nil {
                 Button { Task { await state.trayGoBack() } } label: {
-                    Label("返回", systemImage: "chevron.left").font(Typeface.ui(13, .medium))
+                    Label(L("返回", "Back"), systemImage: "chevron.left").font(Typeface.ui(13, .medium))
                 }
                 .buttonStyle(InkButtonStyle())
             }
@@ -77,36 +77,39 @@ struct TraySheet: View {
             .buttonStyle(.plain)
             .glassEffect(.regular.interactive(), in: .circle)
             .keyboardShortcut(.cancelAction)
-            .help("关闭（Esc）")
+            .help(L("关闭（Esc）", "Close (Esc)"))
         }
         .padding(.horizontal, 28).padding(.top, 18).padding(.bottom, 14)
     }
 
     private var title: String {
         switch tray {
-        case .settings: return "设置"
-        case .session: return state.currentSession.map { $0.title.isEmpty ? "这一次" : $0.title } ?? "这一次"
-        case .practice: return state.practice?.title ?? "讲稿"
-        case .newTopic: return "新讲稿"
-        case .newEvent: return "加一场要讲的"
-        case .addLink: return "贴一个链接"
-        case .history: return "全部记录"
-        case .clips: return "全部片段"
-        case .agenda: return "议程"
+        case .settings: return L("设置", "Settings")
+        case .session: return state.currentSession.map { $0.title.isEmpty ? L("这一次", "This take") : $0.title } ?? L("这一次", "This take")
+        case .practice: return state.practice?.title ?? L("讲稿", "Script")
+        case .newTopic: return L("新讲稿", "New script")
+        case .newEvent: return L("加一场要讲的", "Add a talk")
+        case .addLink: return L("贴一个链接", "Paste a link")
+        case .history: return L("全部记录", "All takes")
+        case .clips: return L("全部片段", "All clips")
+        case .agenda: return L("议程", "Agenda")
         }
     }
 
     private var subtitle: String {
         switch tray {
-        case .settings: return "开始练习的方式、提醒、片段来源和训练周期"
+        case .settings: return L("开始练习的方式、提醒、片段来源和训练周期", "How practice starts, reminders, clip sources and the training cycle")
         case .session: return state.currentSession.map { "\(relativeDay($0.createdAt)) \(String($0.createdAt.dropFirst(11).prefix(5)))" } ?? ""
-        case .practice: return state.practice.map { $0.isClip ? "片段，练过 \($0.sessions.count) 遍" : "讲稿，练过 \($0.sessions.count) 遍" } ?? ""
-        case .newTopic: return "写下要点，当提纲用。讲完会算覆盖了几个"
-        case .newEvent: return "离那天十天以内，今天的计划会换成备讲"
-        case .addLink: return "把一段演讲做成跟读或复述的片段"
-        case .history: return "\(state.history.count) 次录音"
-        case .clips: return "每天从演讲里挑一到两段"
-        case .agenda: return "要讲的场合，每一场倒排六步准备"
+        case .practice: return state.practice.map {
+            $0.isClip ? L("片段，练过 \($0.sessions.count) 遍", "Clip, practiced \(plural($0.sessions.count, "time"))")
+                      : L("讲稿，练过 \($0.sessions.count) 遍", "Script, practiced \(plural($0.sessions.count, "time"))")
+        } ?? ""
+        case .newTopic: return L("写下要点，当提纲用。讲完会算覆盖了几个", "Write the key points as an outline. Each take counts how many you covered")
+        case .newEvent: return L("离那天十天以内，今天的计划会换成备讲", "Within ten days of the talk, today's plan switches to prep")
+        case .addLink: return L("把一段演讲做成跟读或复述的片段", "Turn part of a talk into a clip to shadow or retell")
+        case .history: return L("\(state.history.count) 次录音", plural(state.history.count, "recording"))
+        case .clips: return L("每天从演讲里挑一到两段", "One or two passages picked from talks every day")
+        case .agenda: return L("要讲的场合，每一场倒排六步准备", "Talks you have coming up, each prepped in six steps counted back")
         }
     }
 
@@ -159,13 +162,13 @@ struct PracticeTray: View {
     private func actions(_ p: Practice) -> some View {
         HStack(spacing: 12) {
             if p.reference != nil {
-                Button { go(p, .shadow) } label: { Label("跟读", systemImage: "waveform") }.primaryGlass()
-                Button { go(p, .retell) } label: { Label("听完复述", systemImage: "ear") }.buttonStyle(.glass).controlSize(.large)
-                Button { go(p, .free) } label: { Label("自己讲一遍", systemImage: "mic") }.buttonStyle(.glass).controlSize(.large)
+                Button { go(p, .shadow) } label: { Label(L("跟读", "Shadow"), systemImage: "waveform") }.primaryGlass()
+                Button { go(p, .retell) } label: { Label(L("听完复述", "Listen and retell"), systemImage: "ear") }.buttonStyle(.glass).controlSize(.large)
+                Button { go(p, .free) } label: { Label(L("自己讲一遍", "Say it yourself"), systemImage: "mic") }.buttonStyle(.glass).controlSize(.large)
             } else {
-                Button { go(p, .free) } label: { Label("讲一遍", systemImage: "mic.fill") }.primaryGlass()
+                Button { go(p, .free) } label: { Label(L("讲一遍", "Run it"), systemImage: "mic.fill") }.primaryGlass()
             }
-            Text("第 \(p.sessions.count + 1) 遍会自动归入这里").font(Typeface.ui(12)).foregroundStyle(Palette.ink3)
+            Text(L("第 \(p.sessions.count + 1) 遍会自动归入这里", "Take \(p.sessions.count + 1) is filed here automatically")).font(Typeface.ui(12)).foregroundStyle(Palette.ink3)
         }
     }
 
@@ -181,9 +184,9 @@ struct AttemptsSection: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
-            Text("每一遍").font(Typeface.display(19)).foregroundStyle(Palette.ink)
+            Text(L("每一遍", "Every take")).font(Typeface.display(19)).foregroundStyle(Palette.ink)
             if state.sessions.isEmpty {
-                Text("还没有练过。").font(Typeface.ui(13)).foregroundStyle(Palette.ink3)
+                Text(L("还没有练过。", "Not practiced yet.")).font(Typeface.ui(13)).foregroundStyle(Palette.ink3)
             } else {
                 TrendCharts(sessions: state.sessions, inPractice: true, reference: state.practice?.reference?.metrics)
                 VStack(spacing: 0) {
@@ -206,12 +209,12 @@ struct AttemptRow: View {
     var body: some View {
         Button { Task { await state.openTray(.session(session.id)) } } label: {
             HStack(spacing: 16) {
-                Text("第 \(index) 遍").font(Typeface.display(15)).foregroundStyle(Palette.ink).frame(width: 64, alignment: .leading)
+                Text(L("第 \(index) 遍", "Take \(index)")).font(Typeface.display(15)).foregroundStyle(Palette.ink).frame(width: 64, alignment: .leading)
                 Text("\(relativeDay(session.createdAt)) \(String(session.createdAt.dropFirst(11).prefix(5)))")
                     .font(Typeface.ui(12)).monospacedDigit().foregroundStyle(Palette.ink3).frame(width: 110, alignment: .leading)
-                metric("\(Int(session.wpm.rounded()))", "词/分")
-                metric(fmt1(session.fillersPerMinute), "填充词/分")
-                if let c = session.coverage { metric("\(Int((c * 100).rounded()))%", "要点") }
+                metric("\(Int(session.wpm.rounded()))", L("词/分", "wpm"))
+                metric(fmt1(session.fillersPerMinute), L("填充词/分", "fillers/min"))
+                if let c = session.coverage { metric("\(Int((c * 100).rounded()))%", L("要点", "points")) }
                 Spacer()
                 Text(formatClock(session.durationSec)).font(Typeface.ui(12)).monospacedDigit().foregroundStyle(Palette.ink3)
                 Image(systemName: "chevron.right").font(.system(size: 10, weight: .semibold)).foregroundStyle(hover ? Palette.kyanos : Palette.ink3)
@@ -254,13 +257,17 @@ struct HistoryTray: View {
             if let ins = state.insights {
                 let t = ins.totals
                 LazyVGrid(columns: tileColumns, spacing: 10) {
-                    Tile(value: formatDuration(t.recordSec), label: "总录音时长", note: "\(t.recordCount) 次录音")
-                    Tile(value: formatDuration(t.listenRefSec + t.listenSelfSec), label: "总听音时长", note: "听参照 \(formatDuration(t.listenRefSec))，回听自己 \(formatDuration(t.listenSelfSec))")
-                    Tile(value: "\(t.activeDays)", unit: "天", label: "练过的天数", note: t.firstDay.map { "从 \(shortDay($0)) 开始" } ?? "")
-                    Tile(value: "\(t.currentStreak)", unit: "天", label: "连续练习", note: "最长 \(t.longestStreak) 天")
+                    Tile(value: formatDuration(t.recordSec), label: L("总录音时长", "Time recorded"), note: L("\(t.recordCount) 次录音", plural(t.recordCount, "recording")))
+                    Tile(value: formatDuration(t.listenRefSec + t.listenSelfSec), label: L("总听音时长", "Time listened"),
+                         note: L("听参照 \(formatDuration(t.listenRefSec))，回听自己 \(formatDuration(t.listenSelfSec))",
+                                 "Originals \(formatDuration(t.listenRefSec)), yourself \(formatDuration(t.listenSelfSec))"))
+                    Tile(value: "\(t.activeDays)", unit: L("天", t.activeDays == 1 ? "day" : "days"), label: L("练过的天数", "Days practiced"),
+                         note: t.firstDay.map { L("从 \(shortDay($0)) 开始", "Since \(shortDay($0))") } ?? "")
+                    Tile(value: "\(t.currentStreak)", unit: L("天", t.currentStreak == 1 ? "day" : "days"), label: L("连续练习", "Current streak"),
+                         note: L("最长 \(t.longestStreak) 天", "Longest \(plural(t.longestStreak, "day"))"))
                 }
                 VStack(alignment: .leading, spacing: 8) {
-                    Text("最近十二周，每天几分钟").font(Typeface.display(17)).foregroundStyle(Palette.ink)
+                    Text(L("最近十二周，每天几分钟", "Minutes a day, last twelve weeks")).font(Typeface.display(17)).foregroundStyle(Palette.ink)
                     WeeklyChart(days: Array(ins.days.suffix(84)))
                 }
             }
@@ -271,11 +278,6 @@ struct HistoryTray: View {
                 }
             }
         }
-    }
-
-    private func dayTitle(_ iso: String) -> String {
-        let rel = relativeDay(iso)
-        return rel == "今天" || rel == "昨天" ? "\(rel)，\(chineseDate(iso))" : chineseDate(iso)
     }
 }
 
@@ -291,21 +293,23 @@ struct NewTopicForm: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {
-            TextField("讲什么，比如 数据管道选型", text: $title)
+            TextField(L("讲什么，比如 数据管道选型", "What about? e.g. choosing a data pipeline"), text: $title)
                 .textFieldStyle(.plain).font(Typeface.display(26)).foregroundStyle(Palette.ink)
             Hairline()
             VStack(alignment: .leading, spacing: 8) {
-                FieldLabel(title: "场合")
+                FieldLabel(title: L("场合", "Occasion"))
                 ChoiceChips(options: Scenario.allCases, selection: $scenario) { $0.label }
             }
             VStack(alignment: .leading, spacing: 8) {
-                FieldLabel(title: "要点或讲稿", detail: "当提纲用，不必逐字读。每讲完一遍，会算出讲到了哪几个要点。对话稿里的角色名会自动忽略。")
-                PaperEditor(text: $script, placeholder: "一行一个要点，或者整段讲稿", minHeight: 260)
+                FieldLabel(title: L("要点或讲稿", "Key points or script"),
+                           detail: L("当提纲用，不必逐字读。每讲完一遍，会算出讲到了哪几个要点。对话稿里的角色名会自动忽略。",
+                                     "Used as an outline, not read word for word. After each take you see which points you covered. Speaker names in a dialogue are ignored."))
+                PaperEditor(text: $script, placeholder: L("一行一个要点，或者整段讲稿", "One point per line, or a whole script"), minHeight: 260)
             }
             HStack(spacing: 12) {
                 Spacer()
-                Button("取消") { state.closeTray() }.buttonStyle(InkButtonStyle(color: Palette.ink2))
-                Button { create() } label: { Text("创建，放上讲台").padding(.horizontal, 6) }
+                Button(L("取消", "Cancel")) { state.closeTray() }.buttonStyle(InkButtonStyle(color: Palette.ink2))
+                Button { create() } label: { Text(L("创建，放上讲台", "Create and put on stage")).padding(.horizontal, 6) }
                     .primaryGlass()
                     .keyboardShortcut(.return, modifiers: .command)
                     .disabled(title.trimmingCharacters(in: .whitespaces).isEmpty || saving)
@@ -343,7 +347,7 @@ struct NewEventForm: View {
         VStack(alignment: .leading, spacing: 20) {
             if let templates = state.agenda?.templates, !templates.isEmpty {
                 VStack(alignment: .leading, spacing: 8) {
-                    FieldLabel(title: "从常见的场合开始")
+                    FieldLabel(title: L("从常见的场合开始", "Start from a common one"))
                     FlowLayout(spacing: 8) {
                         ForEach(templates, id: \.title) { t in
                             Button(t.title) { title = t.title; kind = t.kind; minutes = t.minutes }
@@ -352,38 +356,38 @@ struct NewEventForm: View {
                     }
                 }
             }
-            TextField("讲什么，比如 Architecture Review：semantic layer", text: $title)
+            TextField(L("讲什么，比如 Architecture Review：semantic layer", "What is it? e.g. Architecture Review: semantic layer"), text: $title)
                 .textFieldStyle(.plain).font(Typeface.display(24)).foregroundStyle(Palette.ink)
             Hairline()
             HStack(alignment: .top, spacing: 36) {
                 VStack(alignment: .leading, spacing: 8) {
-                    FieldLabel(title: "哪天")
+                    FieldLabel(title: L("哪天", "When"))
                     HStack(spacing: 10) {
                         DatePicker("", selection: $date, in: Date()..., displayedComponents: .date)
                             .labelsHidden().datePickerStyle(.field)
                         Text(relative).font(Typeface.ui(12)).foregroundStyle(Palette.kyanos)
                     }
                     HStack(spacing: 6) {
-                        quick("明天", 1); quick("三天后", 3); quick("一周后", 7); quick("两周后", 14)
+                        quick(L("明天", "Tomorrow"), 1); quick(L("三天后", "In 3 days"), 3); quick(L("一周后", "In a week"), 7); quick(L("两周后", "In 2 weeks"), 14)
                     }
                 }
                 VStack(alignment: .leading, spacing: 8) {
-                    FieldLabel(title: "讲多久")
-                    NumberStepper(value: $minutes, range: 1...60, unit: "分钟")
+                    FieldLabel(title: L("讲多久", "How long"))
+                    NumberStepper(value: $minutes, range: 1...60, unit: L("分钟", "min"))
                 }
             }
             VStack(alignment: .leading, spacing: 8) {
-                FieldLabel(title: "场合")
+                FieldLabel(title: L("场合", "Occasion"))
                 ChoiceChips(options: kinds, selection: $kind) { state.agenda?.kinds[$0] ?? $0 }
             }
             VStack(alignment: .leading, spacing: 8) {
-                FieldLabel(title: "要点（可选）", detail: "会成为这一场的原文，用来算要点覆盖。")
-                PaperEditor(text: $notes, placeholder: "一行一个要点", minHeight: 160)
+                FieldLabel(title: L("要点（可选）", "Key points (optional)"), detail: L("会成为这一场的原文，用来算要点覆盖。", "They become this talk's text, used to measure coverage."))
+                PaperEditor(text: $notes, placeholder: L("一行一个要点", "One point per line"), minHeight: 160)
             }
             HStack(spacing: 12) {
                 Spacer()
-                Button("取消") { state.closeTray() }.buttonStyle(InkButtonStyle(color: Palette.ink2))
-                Button { create() } label: { Text("加上").padding(.horizontal, 10) }
+                Button(L("取消", "Cancel")) { state.closeTray() }.buttonStyle(InkButtonStyle(color: Palette.ink2))
+                Button { create() } label: { Text(L("加上", "Add")).padding(.horizontal, 10) }
                     .primaryGlass()
                     .keyboardShortcut(.return, modifiers: .command)
                     .disabled(title.trimmingCharacters(in: .whitespaces).isEmpty || saving)
@@ -396,7 +400,7 @@ struct NewEventForm: View {
 
     private var relative: String {
         let d = Calendar.current.dateComponents([.day], from: Calendar.current.startOfDay(for: Date()), to: Calendar.current.startOfDay(for: date)).day ?? 0
-        return d == 0 ? "今天" : "\(d) 天后"
+        return d == 0 ? L("今天", "Today") : L("\(d) 天后", "In \(plural(d, "day"))")
     }
 
     private func quick(_ label: String, _ days: Int) -> some View {
@@ -425,21 +429,23 @@ struct AddLinkForm: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 22) {
             VStack(alignment: .leading, spacing: 8) {
-                FieldLabel(title: "链接", detail: "YouTube 链接。带上 &t= 就从那个时间开始截。")
+                FieldLabel(title: L("链接", "Link"), detail: L("YouTube 链接。带上 &t= 就从那个时间开始截。", "A YouTube link. With &t= the clip starts from that time."))
                 TextField("https://www.youtube.com/watch?v=", text: $link).fieldBox().onSubmit(add)
             }
             VStack(alignment: .leading, spacing: 8) {
-                FieldLabel(title: "用来练什么")
-                ChoiceChips(options: ["story", "explain"], selection: $role) { $0 == "story" ? "跟读" : "复述" }
-                Text(role == "story" ? "跟读：挑一个人连续讲故事的段落，戴耳机跟着他说，学节奏、停顿和重音。"
-                                     : "复述：挑一段讲道理的，听完用自己的话讲：核心观点、一个例子、你怎么看。")
+                FieldLabel(title: L("用来练什么", "Practice it as"))
+                ChoiceChips(options: ["story", "explain"], selection: $role) { $0 == "story" ? L("跟读", "Shadow") : L("复述", "Retell") }
+                Text(role == "story" ? L("跟读：挑一个人连续讲故事的段落，戴耳机跟着他说，学节奏、停顿和重音。",
+                                         "Shadow: a passage where one person tells a story. Speak along in headphones to learn their rhythm, pauses and stress.")
+                                     : L("复述：挑一段讲道理的，听完用自己的话讲：核心观点、一个例子、你怎么看。",
+                                         "Retell: a passage that explains or argues. Listen, then say it in your own words: the main point, one example, your view."))
                     .font(Typeface.italic(14)).foregroundStyle(Palette.ink2).fixedSize(horizontal: false, vertical: true)
             }
             HStack(spacing: 12) {
-                Button { add() } label: { Text("做成片段").padding(.horizontal, 8) }
+                Button { add() } label: { Text(L("做成片段", "Make a clip")).padding(.horizontal, 8) }
                     .primaryGlass()
                     .disabled(link.trimmingCharacters(in: .whitespaces).isEmpty)
-                Text("在后台下载和切段，大约一分钟。好了会出现在跟读的素材架上。").font(Typeface.ui(12)).foregroundStyle(Palette.ink3)
+                Text(L("在后台下载和切段，大约一分钟。好了会出现在跟读的素材架上。", "Downloads and cuts in the background, about a minute. It appears on the Shadowing shelf when ready.")).font(Typeface.ui(12)).foregroundStyle(Palette.ink3)
             }
             Hairline()
             DailyStatusBlock()
@@ -464,7 +470,7 @@ struct DailyStatusBlock: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text("每天的片段").font(Typeface.display(17)).foregroundStyle(Palette.ink)
+            Text(L("每天的片段", "Daily clips")).font(Typeface.display(17)).foregroundStyle(Palette.ink)
             if let d = state.today?.daily {
                 HStack(spacing: 10) {
                     if d.state == "running" { ProgressView(value: max(0.05, d.progress)).frame(width: 120).tint(Palette.kyanos) }
@@ -472,8 +478,8 @@ struct DailyStatusBlock: View {
                         .fixedSize(horizontal: false, vertical: true)
                 }
                 HStack(spacing: 12) {
-                    Button("现在就挑") { Task { await state.refreshClips(force: false) } }.buttonStyle(.glass).disabled(d.state == "running")
-                    Button("重新挑今天的") { Task { await state.refreshClips(force: true) } }.buttonStyle(InkButtonStyle()).disabled(d.state == "running")
+                    Button(L("现在就挑", "Pick now")) { Task { await state.refreshClips(force: false) } }.buttonStyle(.glass).disabled(d.state == "running")
+                    Button(L("重新挑今天的", "Pick today's again")) { Task { await state.refreshClips(force: true) } }.buttonStyle(InkButtonStyle()).disabled(d.state == "running")
                 }
             }
         }
@@ -481,11 +487,11 @@ struct DailyStatusBlock: View {
 
     private func line(_ d: DailyInfo) -> String {
         switch d.state {
-        case "running": return d.message?.isEmpty == false ? d.message! : "正在准备今天的片段"
-        case "waiting": return "今天的还没准备。每天清晨自动挑，也可以现在就挑，大约三分钟。"
-        case "failed": return "没挑到片段：\(d.errors.last ?? d.message ?? "原因不明")"
-        case "off": return "每日片段关着，可以在设置里打开。"
-        default: return "今天的 \(d.want) 段已经备好。"
+        case "running": return d.message?.isEmpty == false ? d.message! : L("正在准备今天的片段", "Preparing today's clips")
+        case "waiting": return L("今天的还没准备。每天清晨自动挑，也可以现在就挑，大约三分钟。", "Today's aren't ready yet. They're picked every morning, or pick now; it takes about three minutes.")
+        case "failed": return L("没挑到片段：", "No clips picked: ") + (d.errors.last ?? d.message ?? L("原因不明", "unknown reason"))
+        case "off": return L("每日片段关着，可以在设置里打开。", "Daily clips are off. Turn them on in Settings.")
+        default: return L("今天的 \(d.want) 段已经备好。", d.want == 1 ? "Today's clip is ready." : "Today's \(d.want) clips are ready.")
         }
     }
 }

@@ -131,7 +131,7 @@ struct Insights: Codable, Hashable {
 
 func formatDuration(_ seconds: Double) -> String {
     let s = Int(seconds.rounded())
-    if s < 60 { return "\(s) 秒" }
-    if s < 3600 { return "\(s / 60) 分 \(s % 60) 秒" }
-    return String(format: "%d 小时 %d 分", s / 3600, (s % 3600) / 60)
+    if s < 60 { return L("\(s) 秒", "\(s) s") }
+    if s < 3600 { return L("\(s / 60) 分 \(s % 60) 秒", "\(s / 60) min \(s % 60) s") }
+    return String(format: L("%d 小时 %d 分", "%d h %d min"), s / 3600, (s % 3600) / 60)
 }

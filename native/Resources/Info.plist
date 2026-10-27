@@ -3,6 +3,7 @@
 <plist version="1.0">
 <dict>
   <key>CFBundleDevelopmentRegion</key><string>zh_CN</string>
+  <key>CFBundleLocalizations</key><array><string>zh-Hans</string><string>en</string></array>
   <key>CFBundleExecutable</key><string>SpeechPractice</string>
   <key>CFBundleIdentifier</key><string>com.zhengyangxu.speechpractice</string>
   <key>CFBundleName</key><string>Melete</string>

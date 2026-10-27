@@ -246,7 +246,7 @@ struct PlayerBar: View {
                     .contentTransition(.symbolEffect(.replace))
             }
             .buttonStyle(.plain)
-            .help(model.playing ? "暂停" : "播放")
+            .help(model.playing ? L("暂停", "Pause") : L("播放", "Play"))
             Text(formatClock(model.time)).font(.system(size: 12).monospacedDigit()).foregroundStyle(Palette.ink2)
             Scrubber(value: Binding(get: { model.time }, set: { model.seek(to: $0) }), total: max(model.duration, 0.01), tint: tint)
             Text(formatClock(model.duration)).font(.system(size: 12).monospacedDigit()).foregroundStyle(Palette.ink2)

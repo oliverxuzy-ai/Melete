@@ -21,7 +21,7 @@ final class ServerManager {
         }
         guard let exe = Bundle.main.resourceURL?.appendingPathComponent("server/SpeechPracticeServer"),
               FileManager.default.isExecutableFile(atPath: exe.path) else {
-            status = .failed("找不到内置的分析服务（server/SpeechPracticeServer）")
+            status = .failed(L("找不到内置的分析服务（server/SpeechPracticeServer）", "Can't find the built-in analysis service (server/SpeechPracticeServer)"))
             return
         }
         let port = ServerManager.freePort()
@@ -36,12 +36,12 @@ final class ServerManager {
         p.terminationHandler = { [weak self] proc in
             Task { @MainActor in
                 if self?.status == .ready || self?.status == .starting {
-                    self?.status = .failed("分析服务退出了（code \(proc.terminationStatus)），看 logs/server.log")
+                    self?.status = .failed(L("分析服务退出了（code \(proc.terminationStatus)），看 logs/server.log", "The analysis service quit (code \(proc.terminationStatus)); see logs/server.log"))
                 }
             }
         }
         do { try p.run() } catch {
-            status = .failed("启动分析服务失败：\(error.localizedDescription)")
+            status = .failed(L("启动分析服务失败：", "Couldn't start the analysis service: ") + error.localizedDescription)
             return
         }
         process = p
@@ -62,7 +62,7 @@ final class ServerManager {
             if (try? await api.config()) != nil { status = .ready; return }
             try? await Task.sleep(for: .milliseconds(400))
         }
-        status = .failed("分析服务 \(Int(timeout)) 秒内没有响应")
+        status = .failed(L("分析服务 \(Int(timeout)) 秒内没有响应", "The analysis service didn't respond within \(Int(timeout)) s"))
     }
 
     static func freePort() -> Int {

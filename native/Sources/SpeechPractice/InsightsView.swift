@@ -10,35 +10,36 @@ struct RecapCard: View {
             if let r = state.recap {
                 HStack(alignment: .firstTextBaseline) {
                     VStack(alignment: .leading, spacing: 4) {
-                        Text(state.recapOffset == 0 ? "本周小结" : "\(state.recapOffset) 周前").font(Typeface.display(26)).foregroundStyle(Palette.ink)
-                        Text("\(shortDay(r.start)) 到 \(shortDay(r.end))，\(r.block.greek) \(r.block.name)").font(Typeface.ui(12)).foregroundStyle(Palette.ink2)
+                        Text(state.recapOffset == 0 ? L("本周小结", "This week") : L("\(state.recapOffset) 周前", state.recapOffset == 1 ? "Last week" : "\(state.recapOffset) weeks ago")).font(Typeface.display(26)).foregroundStyle(Palette.ink)
+                        Text(L("\(shortDay(r.start)) 到 \(shortDay(r.end))，\(r.block.greek) \(r.block.name)", "\(shortDay(r.start)) to \(shortDay(r.end)), \(r.block.greek) \(r.block.name)")).font(Typeface.ui(12)).foregroundStyle(Palette.ink2)
                     }
                     Spacer()
                     Button { shift(1) } label: { Image(systemName: "chevron.left") }.buttonStyle(.glass)
                     Button { shift(-1) } label: { Image(systemName: "chevron.right") }.buttonStyle(.glass).disabled(state.recapOffset == 0)
                 }
-                section("I", "练了几天") {
+                section("I", L("练了几天", "Days practiced")) {
                     VStack(alignment: .leading, spacing: 8) {
                         HStack(spacing: 10) {
                             ForEach(Array(r.days.enumerated()), id: \.element.id) { i, d in
                                 VStack(spacing: 4) {
                                     Circle().fill(d.practiced ? Palette.ochre : Palette.vein.opacity(0.6)).frame(width: 16, height: 16)
-                                    Text(["一", "二", "三", "四", "五", "六", "日"][i]).font(Typeface.ui(10)).foregroundStyle(Palette.ink3)
+                                    Text(weekdayInitials[i]).font(Typeface.ui(10)).foregroundStyle(Palette.ink3)
                                 }
                             }
                         }
-                        Text("\(r.practiced) / \(r.target) 天，说了 \(fmt1(r.recordMinutes)) 分钟，听了 \(fmt1(r.listenMinutes)) 分钟，共 \(r.sessions) 次")
+                        Text(L("\(r.practiced) / \(r.target) 天，说了 \(fmt1(r.recordMinutes)) 分钟，听了 \(fmt1(r.listenMinutes)) 分钟，共 \(r.sessions) 次",
+                               "\(r.practiced) / \(r.target) days, \(fmt1(r.recordMinutes)) min speaking, \(fmt1(r.listenMinutes)) min listening, \(plural(r.sessions, "session"))"))
                             .font(Typeface.ui(13)).foregroundStyle(Palette.ink).fixedSize(horizontal: false, vertical: true)
                     }
                 }
-                section("II", "变化") {
+                section("II", L("变化", "What changed")) {
                     HStack(alignment: .top, spacing: 30) {
-                        change("语速", r.metrics["wpm"], unit: "词/分", higherIsBetter: true)
-                        change("音高起伏", r.metrics["pitch"], unit: "半音", higherIsBetter: true)
-                        change("填充词", r.metrics["fillers"], unit: "次/分", higherIsBetter: false)
+                        change(L("语速", "Pace"), r.metrics["wpm"], unit: L("词/分", "wpm"), higherIsBetter: true)
+                        change(L("音高起伏", "Pitch range"), r.metrics["pitch"], unit: L("半音", "semitones"), higherIsBetter: true)
+                        change(L("填充词", "Fillers"), r.metrics["fillers"], unit: L("次/分", "/min"), higherIsBetter: false)
                     }
                 }
-                section("III", "下周") {
+                section("III", L("下周", "Next week")) {
                     VStack(alignment: .leading, spacing: 4) {
                         Text("\(r.next.greek)  \(r.next.name)").font(Typeface.display(17)).foregroundStyle(Palette.kyanos)
                         if let why = r.next.why { Text(why).font(Typeface.ui(13)).foregroundStyle(Palette.ink2).fixedSize(horizontal: false, vertical: true) }
@@ -76,14 +77,14 @@ struct RecapCard: View {
                     Text(unit).font(Typeface.ui(11)).foregroundStyle(Palette.ink2)
                 }
             } else {
-                Text(state.recapOffset == 0 ? "这周还没有" : "那周没有录音").font(Typeface.ui(13)).foregroundStyle(Palette.ink3).padding(.vertical, 6)
+                Text(state.recapOffset == 0 ? L("这周还没有", "None yet this week") : L("那周没有录音", "No recordings that week")).font(Typeface.ui(13)).foregroundStyle(Palette.ink3).padding(.vertical, 6)
             }
             if let a = m?.this, let b = m?.last {
                 let up = a > b
                 let good = up == higherIsBetter
-                Text("上周 \(fmt1(b))，\(up ? "↑" : "↓")\(fmt1(abs(a - b)))").font(Typeface.ui(11)).foregroundStyle(good ? Palette.malachite : Palette.ink2)
+                Text(L("上周 \(fmt1(b))，", "Last week \(fmt1(b)), ") + "\(up ? "↑" : "↓")\(fmt1(abs(a - b)))").font(Typeface.ui(11)).foregroundStyle(good ? Palette.malachite : Palette.ink2)
             } else if let b = m?.last {
-                Text("上周 \(fmt1(b))").font(Typeface.ui(11)).foregroundStyle(Palette.ink3)
+                Text(L("上周 \(fmt1(b))", "Last week \(fmt1(b))")).font(Typeface.ui(11)).foregroundStyle(Palette.ink3)
             }
         }
     }
@@ -118,7 +119,7 @@ struct Heatmap: View {
                     VStack(spacing: gap) {
                         // Keyed by position: the blank labels would otherwise share one ID, which SwiftUI reports
                         // as invalid and which can leave the whole window unable to update.
-                        ForEach(Array(["一", "", "三", "", "五", "", "日"].enumerated()), id: \.offset) { Text($0.element).font(.system(size: 9)).foregroundStyle(Palette.ink3).frame(width: 12, height: cell) }
+                        ForEach(Array((isEnglishUI ? ["M", "", "W", "", "F", "", "S"] : ["一", "", "三", "", "五", "", "日"]).enumerated()), id: \.offset) { Text($0.element).font(.system(size: 9)).foregroundStyle(Palette.ink3).frame(width: 12, height: cell) }
                     }
                     ForEach(Array(weeks.enumerated()), id: \.offset) { _, col in
                         VStack(spacing: gap) {
@@ -137,9 +138,9 @@ struct Heatmap: View {
                 }
                 HStack(spacing: 4) {
                     Spacer()
-                    Text("少").font(.caption2).foregroundStyle(Palette.ink3)
+                    Text(L("少", "Less")).font(.caption2).foregroundStyle(Palette.ink3)
                     ForEach(0..<5, id: \.self) { i in Circle().fill(level(i)).frame(width: cell, height: cell) }
-                    Text("多").font(.caption2).foregroundStyle(Palette.ink3)
+                    Text(L("多", "More")).font(.caption2).foregroundStyle(Palette.ink3)
                 }
             }
             .padding(.vertical, 4)
@@ -153,7 +154,7 @@ struct Heatmap: View {
                 let label: String = {
                     guard let d = col.compactMap({ $0 }).first, let date = Heatmap.parse(d.date) else { return "" }
                     let day = Calendar.current.component(.day, from: date)
-                    return day <= 7 || i == 0 ? "\(Calendar.current.component(.month, from: date))月" : ""
+                    return day <= 7 || i == 0 ? monthLabel(Calendar.current.component(.month, from: date)) : ""
                 }()
                 Text(label).font(.system(size: 9)).foregroundStyle(Palette.ink3).lineLimit(1).fixedSize().frame(width: cell, alignment: .leading)
             }
@@ -180,17 +181,19 @@ struct Heatmap: View {
 struct WeeklyChart: View {
     let days: [InsightDay]
     var body: some View {
+        let rec = L("录音", "Recording"), ref = L("听参照", "Reference"), mine = L("回听自己", "Playback")
+        let dateLabel = L("日期", "Date"), kind = L("类型", "Kind")
         Chart {
             ForEach(days) { d in
                 let date = Heatmap.parse(d.date) ?? Date()
-                BarMark(x: .value("日期", date, unit: .day), y: .value("录音", d.recordSec / 60)).foregroundStyle(by: .value("类型", "录音"))
-                BarMark(x: .value("日期", date, unit: .day), y: .value("听参照", d.listenRefSec / 60)).foregroundStyle(by: .value("类型", "听参照"))
-                BarMark(x: .value("日期", date, unit: .day), y: .value("回听", d.listenSelfSec / 60)).foregroundStyle(by: .value("类型", "回听自己"))
+                BarMark(x: .value(dateLabel, date, unit: .day), y: .value(rec, d.recordSec / 60)).foregroundStyle(by: .value(kind, rec))
+                BarMark(x: .value(dateLabel, date, unit: .day), y: .value(ref, d.listenRefSec / 60)).foregroundStyle(by: .value(kind, ref))
+                BarMark(x: .value(dateLabel, date, unit: .day), y: .value(mine, d.listenSelfSec / 60)).foregroundStyle(by: .value(kind, mine))
             }
         }
-        .chartForegroundStyleScale(["录音": Palette.kyanos, "听参照": Palette.ochre, "回听自己": Palette.malachite])
+        .chartForegroundStyleScale([rec: Palette.kyanos, ref: Palette.ochre, mine: Palette.malachite])
         .chartXAxis { AxisMarks(values: .stride(by: .weekOfYear)) { _ in AxisGridLine(); AxisValueLabel(format: .dateTime.month(.defaultDigits).day()) } }
-        .chartYAxisLabel("分钟")
+        .chartYAxisLabel(L("分钟", "min"))
         .frame(height: 180)
     }
 }

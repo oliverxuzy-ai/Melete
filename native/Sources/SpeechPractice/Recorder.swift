@@ -8,8 +8,8 @@ enum RecorderError: LocalizedError {
     case micDenied, noInput
     var errorDescription: String? {
         switch self {
-        case .micDenied: return "没有麦克风权限。到 系统设置 > 隐私与安全性 > 麦克风 里允许 Melete。"
-        case .noInput: return "现在没有可用的麦克风。到 系统设置 > 声音 > 输入 选一个，再开始。"
+        case .micDenied: return L("没有麦克风权限。到 系统设置 > 隐私与安全性 > 麦克风 里允许 Melete。", "No microphone access. Allow Melete in System Settings > Privacy & Security > Microphone.")
+        case .noInput: return L("现在没有可用的麦克风。到 系统设置 > 声音 > 输入 选一个，再开始。", "No microphone is available. Pick one in System Settings > Sound > Input, then start again.")
         }
     }
 }
@@ -358,7 +358,7 @@ final class Recorder {
         input.removeTap(onBus: 0)
         let format = input.outputFormat(forBus: 0)
         guard format.sampleRate > 0, format.channelCount > 0 else {
-            liveNote = "麦克风断开了"
+            liveNote = L("麦克风断开了", "The microphone disconnected")
             CaptureLog.write("input lost after change \(restarts)")
             return
         }
@@ -368,7 +368,7 @@ final class Recorder {
             try engine.start()
             CaptureLog.write("input changed to \(Int(format.sampleRate)) Hz × \(format.channelCount), reattached")
         } catch {
-            liveNote = "麦克风重新连接失败：\(error.localizedDescription)"
+            liveNote = L("麦克风重新连接失败：", "Couldn't reconnect the microphone: ") + error.localizedDescription
             CaptureLog.write("reattach failed: \(error.localizedDescription)")
         }
     }
@@ -611,7 +611,7 @@ final class Recorder {
                             await MainActor.run { self?.handle(text: text, isFinal: result.isFinal, audioEnd: end) }
                         }
                     } catch {
-                        await MainActor.run { self?.liveNote = "实时识别中断：\(error.localizedDescription)" }
+                        await MainActor.run { self?.liveNote = L("实时识别中断：", "Live recognition stopped: ") + error.localizedDescription }
                     }
                 }
             } else {
@@ -628,12 +628,12 @@ final class Recorder {
                             await MainActor.run { self?.handle(text: text, isFinal: result.isFinal, audioEnd: end) }
                         }
                     } catch {
-                        await MainActor.run { self?.liveNote = "实时字幕中断：\(error.localizedDescription)" }
+                        await MainActor.run { self?.liveNote = L("实时字幕中断：", "Live captions stopped: ") + error.localizedDescription }
                     }
                 }
             }
             if let request = try await AssetInventory.assetInstallationRequest(supporting: [module]) {
-                liveNote = "正在下载语音识别模型…"
+                liveNote = L("正在下载语音识别模型…", "Downloading the speech model…")
                 try await request.downloadAndInstall()
                 liveNote = nil
             }
@@ -653,7 +653,7 @@ final class Recorder {
         } catch {
             resultsTask?.cancel(); resultsTask = nil
             liveAvailable = false
-            liveNote = "实时字幕不可用：\(error.localizedDescription)"
+            liveNote = L("实时字幕不可用：", "Live captions unavailable: ") + error.localizedDescription
             return (nil, nil)
         }
     }

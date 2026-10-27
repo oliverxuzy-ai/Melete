@@ -1,0 +1,4 @@
+/* 系统询问麦克风权限时显示。 */
+"NSMicrophoneUsageDescription" = "Melete 录下你的练习并在本机分析。音频和转写只保存在这台电脑上。";
+/* 系统询问语音识别权限时显示。 */
+"NSSpeechRecognitionUsageDescription" = "录音时在本机实时识别你说的话，用来显示实时字幕。";

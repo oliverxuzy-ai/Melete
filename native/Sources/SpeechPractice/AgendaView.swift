@@ -8,16 +8,17 @@ struct AgendaContent: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 26) {
             HStack(alignment: .center) {
-                Text("把要讲的场合放进来：架构评审、1:1、onsite、面试。离那天十天以内，今天的计划会换成备讲。")
+                Text(L("把要讲的场合放进来：架构评审、1:1、onsite、面试。离那天十天以内，今天的计划会换成备讲。",
+                       "Add the talks you have coming up: architecture reviews, 1:1s, onsites, interviews. Within ten days of one, today's plan switches to prep."))
                     .font(Typeface.italic(14)).foregroundStyle(Palette.ink2).fixedSize(horizontal: false, vertical: true)
                 Spacer()
-                Button { Task { await state.openTray(.newEvent) } } label: { Label("加一场", systemImage: "plus") }.primaryGlass()
+                Button { Task { await state.openTray(.newEvent) } } label: { Label(L("加一场", "Add a talk"), systemImage: "plus") }.primaryGlass()
             }
             if let a = state.agenda {
                 let upcoming = a.events.filter { !$0.past }
                 if upcoming.isEmpty {
                     VStack(alignment: .leading, spacing: 12) {
-                        Text("最近没有要讲的场合。可以从这些开始：").font(Typeface.ui(14)).foregroundStyle(Palette.ink2)
+                        Text(L("最近没有要讲的场合。可以从这些开始：", "Nothing coming up. You could start from one of these:")).font(Typeface.ui(14)).foregroundStyle(Palette.ink2)
                         FlowLayout(spacing: 8) {
                             ForEach(a.templates, id: \.title) { t in
                                 Button(t.title) {
@@ -31,7 +32,7 @@ struct AgendaContent: View {
                 ForEach(upcoming) { ev in EventCard(event: ev) }
                 let past = a.events.filter(\.past)
                 if !past.isEmpty {
-                    Text("已经讲过").font(Typeface.display(18)).foregroundStyle(Palette.ink2).padding(.top, 8)
+                    Text(L("已经讲过", "Already given")).font(Typeface.display(18)).foregroundStyle(Palette.ink2).padding(.top, 8)
                     ForEach(past) { ev in
                         HStack {
                             Text(ev.title).font(Typeface.ui(13)).foregroundStyle(Palette.ink2)
@@ -56,15 +57,15 @@ struct EventCard: View {
         VStack(alignment: .leading, spacing: 18) {
             HStack(alignment: .top, spacing: 20) {
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(event.daysLeft == 0 ? "今天" : "\(event.daysLeft)")
-                        .font(Typeface.display(48)).foregroundStyle(event.daysLeft <= 2 ? Palette.cinnabar : Palette.kyanos)
-                    if event.daysLeft > 0 { Text("天后").font(Typeface.ui(12)).foregroundStyle(Palette.ink2) }
+                    Text(event.daysLeft == 0 ? L("今天", "Today") : "\(event.daysLeft)")
+                        .font(Typeface.display(event.daysLeft == 0 && isEnglishUI ? 30 : 48)).foregroundStyle(event.daysLeft <= 2 ? Palette.cinnabar : Palette.kyanos)
+                    if event.daysLeft > 0 { Text(L("天后", event.daysLeft == 1 ? "day to go" : "days to go")).font(Typeface.ui(12)).foregroundStyle(Palette.ink2) }
                 }
                 .frame(width: 84, alignment: .leading)
                 VStack(alignment: .leading, spacing: 6) {
                     HStack(spacing: 8) {
                         Chip(text: event.kindLabel, style: .hedge)
-                        Text("\(shortDay(event.date))，\(event.minutes) 分钟").font(Typeface.ui(12)).foregroundStyle(Palette.ink3)
+                        Text(L("\(shortDay(event.date))，\(event.minutes) 分钟", "\(shortDay(event.date)), \(event.minutes) min")).font(Typeface.ui(12)).foregroundStyle(Palette.ink3)
                     }
                     Text(event.title).font(Typeface.display(22)).foregroundStyle(Palette.ink)
                     if !event.notes.isEmpty {
@@ -74,9 +75,9 @@ struct EventCard: View {
                 Spacer()
                 VStack(alignment: .trailing, spacing: 8) {
                     if let pid = event.practiceId {
-                        Button("编辑提纲，看记录") { Task { await state.openTray(.practice(pid)) } }.buttonStyle(InkButtonStyle())
+                        Button(L("编辑提纲，看记录", "Edit outline, see takes")) { Task { await state.openTray(.practice(pid)) } }.buttonStyle(InkButtonStyle())
                     }
-                    ConfirmButton(title: "删除这一场", question: "提纲和录音会保留。") {
+                    ConfirmButton(title: L("删除这一场", "Delete this talk"), question: L("提纲和录音会保留。", "The outline and recordings stay.")) {
                         Task { await state.deleteEvent(event.id) }
                     }
                 }
@@ -84,7 +85,7 @@ struct EventCard: View {
             PrepTimeline(steps: event.steps)
             HStack(spacing: 12) {
                 if let step = event.steps.first(where: { $0.state == "today" }) ?? event.steps.first(where: { $0.state != "done" }) {
-                    Button { start(step) } label: { Label("练这一步：\(step.title)", systemImage: "mic.fill") }.primaryGlass()
+                    Button { start(step) } label: { Label(L("练这一步：", "Practice this step: ") + step.title, systemImage: "mic.fill") }.primaryGlass()
                     Text(step.detail).font(Typeface.italic(13)).foregroundStyle(Palette.ink2).lineLimit(2)
                 }
             }
@@ -97,7 +98,7 @@ struct EventCard: View {
         Task {
             guard let pid = event.practiceId, let p = await state.fetchPractice(pid) else { return }
             let item = PlanItem(id: step.id, kind: "agenda", practiceId: pid, promptId: nil,
-                                title: "\(event.title)：\(step.title)", subtitle: event.kindLabel, prompt: nil,
+                                title: L("\(event.title)：\(step.title)", "\(event.title): \(step.title)"), subtitle: event.kindLabel, prompt: nil,
                                 seconds: step.key == "first" || step.key == "timed" ? event.minutes * 60 : 90,
                                 detail: step.detail, sessionId: nil)
             _ = p
@@ -123,7 +124,7 @@ struct PrepTimeline: View {
                     }
                     Text(s.title).font(Typeface.ui(12, s.state == "today" ? .semibold : .regular))
                         .foregroundStyle(s.state == "missed" ? Palette.ink3 : Palette.ink)
-                    Text(s.offset == 0 ? "当天" : "前 \(s.offset) 天").font(Typeface.ui(11)).foregroundStyle(Palette.ink3)
+                    Text(s.offset == 0 ? L("当天", "On the day") : L("前 \(s.offset) 天", "\(plural(s.offset, "day")) before")).font(Typeface.ui(11)).foregroundStyle(Palette.ink3)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
             }

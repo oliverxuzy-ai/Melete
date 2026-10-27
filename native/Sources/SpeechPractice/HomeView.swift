@@ -54,9 +54,9 @@ struct HomeBooting: View {
 
     var body: some View {
         VStack(spacing: 14) {
-            Text(chineseDate(Date())).font(Typeface.display(34)).foregroundStyle(Palette.ink)
-            Text("分析服务在后台启动。现在就可以录，录完会自动分析。").font(Typeface.ui(14)).foregroundStyle(Palette.ink2)
-            Button { stage.presentFree() } label: { Label("随便说一段", systemImage: "mic.fill") }
+            Text(longDate(Date())).font(Typeface.display(34)).foregroundStyle(Palette.ink)
+            Text(L("分析服务在后台启动。现在就可以录，录完会自动分析。", "The analysis service is starting in the background. You can record now; it's analyzed when you finish.")).font(Typeface.ui(14)).foregroundStyle(Palette.ink2)
+            Button { stage.presentFree() } label: { Label(L("随便说一段", "Say anything"), systemImage: "mic.fill") }
                 .primaryGlass()
         }
     }
@@ -73,9 +73,9 @@ struct HomeHeader: View {
                 HStack(alignment: .firstTextBaseline, spacing: 10) {
                     Text(today.weekday).font(Typeface.ui(12, .medium)).foregroundStyle(Palette.ink2)
                     Text(today.block.greek).font(Typeface.italic(13)).foregroundStyle(Palette.kyanos)
-                    Text("\(today.block.name)，第 \(today.block.week ?? 1) / \(today.block.weeks) 周").font(Typeface.ui(12)).foregroundStyle(Palette.ink2)
+                    Text(L("\(today.block.name)，第 \(today.block.week ?? 1) / \(today.block.weeks) 周", "\(today.block.name), week \(today.block.week ?? 1) of \(today.block.weeks)")).font(Typeface.ui(12)).foregroundStyle(Palette.ink2)
                 }
-                Text(chineseDate(today.date)).font(Typeface.display(26)).foregroundStyle(Palette.ink)
+                Text(longDate(today.date)).font(Typeface.display(26)).foregroundStyle(Palette.ink)
             }
             Spacer()
             Text(today.block.why).font(Typeface.italic(14)).foregroundStyle(Palette.ink2)
@@ -112,30 +112,30 @@ struct PerformanceColumn: View {
         let recent = Array(own.suffix(12))
         VStack(alignment: .leading, spacing: 12) {
             HStack(alignment: .firstTextBaseline) {
-                Text("表现").font(Typeface.ui(12, .medium)).foregroundStyle(Palette.ink2)
+                Text(L("表现", "Performance")).font(Typeface.ui(12, .medium)).foregroundStyle(Palette.ink2)
                 Spacer()
-                Text(recent.isEmpty ? "还没有自己讲的录音" : "自己讲的最近 \(recent.count) 次").font(Typeface.ui(11)).foregroundStyle(Palette.ink3)
+                Text(recent.isEmpty ? L("还没有自己讲的录音", "No takes of your own yet") : L("自己讲的最近 \(recent.count) 次", "Your last \(plural(recent.count, "take"))")).font(Typeface.ui(11)).foregroundStyle(Palette.ink3)
             }
             if recent.count < 2 {
-                Text("自己讲两次以后，这里会画出语速、填充词和音高的走势。").font(Typeface.italic(14)).foregroundStyle(Palette.ink2)
+                Text(L("自己讲两次以后，这里会画出语速、填充词和音高的走势。", "After two takes of your own, this shows how your pace, fillers and pitch are trending.")).font(Typeface.italic(14)).foregroundStyle(Palette.ink2)
                     .fixedSize(horizontal: false, vertical: true)
             } else {
-                MetricTrend(label: "语速", unit: "词/分", values: recent.map(\.wpm),
-                            band: today.targets.band, target: "目标 \(Int(today.targets.wpmLow)) 到 \(Int(today.targets.wpmHigh))",
+                MetricTrend(label: L("语速", "Pace"), unit: L("词/分", "wpm"), values: recent.map(\.wpm),
+                            band: today.targets.band, target: L("目标 \(Int(today.targets.wpmLow)) 到 \(Int(today.targets.wpmHigh))", "Target \(Int(today.targets.wpmLow))–\(Int(today.targets.wpmHigh))"),
                             better: .inBand(today.targets.band), format: { String(Int($0.rounded())) })
-                MetricTrend(label: "填充词", unit: "次/分", values: recent.map(\.fillersPerMinute),
-                            band: nil, target: "目标 \(fmt1(today.targets.fillers)) 以下",
+                MetricTrend(label: L("填充词", "Fillers"), unit: L("次/分", "/min"), values: recent.map(\.fillersPerMinute),
+                            band: nil, target: L("目标 \(fmt1(today.targets.fillers)) 以下", "Target \(fmt1(today.targets.fillers)) or fewer"),
                             better: .lower(today.targets.fillers), format: fmt1)
                 let pitch = recent.compactMap(\.pitchRange)
                 if pitch.count >= 2 {
-                    MetricTrend(label: "音高起伏", unit: "半音", values: pitch,
-                                band: nil, target: "目标 \(fmt1(today.targets.pitch)) 以上",
+                    MetricTrend(label: L("音高起伏", "Pitch range"), unit: L("半音", "semitones"), values: pitch,
+                                band: nil, target: L("目标 \(fmt1(today.targets.pitch)) 以上", "Target \(fmt1(today.targets.pitch)) or more"),
                                 better: .higher(today.targets.pitch), format: fmt1)
                 }
                 let cov = own.compactMap(\.coverage).suffix(12)
                 if cov.count >= 2 {
-                    MetricTrend(label: "要点覆盖", unit: "%", values: cov.map { $0 * 100 },
-                                band: nil, target: "讲稿和备讲里讲到的要点",
+                    MetricTrend(label: L("要点覆盖", "Coverage"), unit: "%", values: cov.map { $0 * 100 },
+                                band: nil, target: L("讲稿和备讲里讲到的要点", "Key points covered in scripts and prep"),
                                 better: .higher(80), format: { String(Int($0.rounded())) })
                 }
             }
@@ -202,8 +202,8 @@ struct MetricTrend: View {
     private var deltaText: String {
         guard let b = before else { return target }
         let d = last - b
-        if abs(d) < 0.05 { return "和前几次持平" }
-        return "比前几次 \(d > 0 ? "↑" : "↓")\(format(abs(d)))"
+        if abs(d) < 0.05 { return L("和前几次持平", "Level with recent takes") }
+        return L("比前几次 \(d > 0 ? "↑" : "↓")\(format(abs(d)))", "\(d > 0 ? "↑" : "↓")\(format(abs(d))) vs. recent takes")
     }
 }
 
@@ -246,7 +246,8 @@ struct WeekCentre: View {
     var body: some View {
         VStack(spacing: 14) {
             LaurelWreath(days: today.week.laurel, target: today.week.target, size: 230)
-                .help("一片叶子是一天。完成任意一项就算练过，一周 \(today.week.target) 天就算达标。")
+                .help(L("一片叶子是一天。完成任意一项就算练过，一周 \(today.week.target) 天就算达标。",
+                        "One leaf is one day. Finishing any item counts the day; \(today.week.target) days makes the week."))
             Text(caption).font(Typeface.italic(15)).foregroundStyle(captionColor)
                 .multilineTextAlignment(.center).fixedSize(horizontal: false, vertical: true)
                 .frame(maxWidth: 340)
@@ -255,11 +256,14 @@ struct WeekCentre: View {
 
     private var caption: String {
         let w = today.week
-        if w.todayDone { return w.done >= w.target ? "本周的目标已经达到。" : "今天练过了。还差 \(max(0, w.target - w.done)) 天。" }
-        if let d = w.daysSince, d > 2 { return "上次练是 \(d) 天前。今天录一段一分钟的，先把节奏接上。" }
-        if w.missedTwo { return "已经两天没练了。今天录一段一分钟的就行。" }
-        if w.missedYesterday { return "昨天没练。今天录一段，就不会连着断两天。" }
-        return "今天还没练。完成任意一项就算数。"
+        if w.todayDone {
+            return w.done >= w.target ? L("本周的目标已经达到。", "This week's goal is reached.")
+                : L("今天练过了。还差 \(max(0, w.target - w.done)) 天。", "Done for today. \(plural(max(0, w.target - w.done), "more day")) to go.")
+        }
+        if let d = w.daysSince, d > 2 { return L("上次练是 \(d) 天前。今天录一段一分钟的，先把节奏接上。", "Last practice was \(d) days ago. Record one minute today to get the rhythm back.") }
+        if w.missedTwo { return L("已经两天没练了。今天录一段一分钟的就行。", "Two days off now. One minute today is enough.") }
+        if w.missedYesterday { return L("昨天没练。今天录一段，就不会连着断两天。", "You skipped yesterday. Record one today and it won't become two.") }
+        return L("今天还没练。完成任意一项就算数。", "Not yet today. Any one item counts.")
     }
 
     private var captionColor: Color {
@@ -277,21 +281,21 @@ struct RhythmColumn: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 18) {
             HStack(alignment: .firstTextBaseline) {
-                Text("节奏").font(Typeface.ui(12, .medium)).foregroundStyle(Palette.ink2)
+                Text(L("节奏", "Rhythm")).font(Typeface.ui(12, .medium)).foregroundStyle(Palette.ink2)
                 Spacer()
-                Text("本周 \(Int(today.week.days.map(\.minutes).reduce(0, +).rounded())) 分钟").font(Typeface.ui(11)).foregroundStyle(Palette.ink3)
+                Text(L("本周 \(Int(today.week.days.map(\.minutes).reduce(0, +).rounded())) 分钟", "\(Int(today.week.days.map(\.minutes).reduce(0, +).rounded())) min this week")).font(Typeface.ui(11)).foregroundStyle(Palette.ink3)
             }
             WeekStrip(days: today.week.days)
             if !today.week.committed {
-                HoldToCommit(title: "按住，承诺本周练 \(today.week.target) 天") {
+                HoldToCommit(title: L("按住，承诺本周练 \(today.week.target) 天", "Hold to commit to \(today.week.target) days this week")) {
                     Task { await state.commitWeek() }
                 }
             }
             if let t = state.insights?.totals {
                 HStack(alignment: .firstTextBaseline, spacing: 18) {
-                    stat("\(t.currentStreak)", "天", "连续")
-                    stat("\(t.longestStreak)", "天", "最长")
-                    stat("\(Int((t.thisWeekSec / 60).rounded()))", "分", "近 7 天")
+                    stat("\(t.currentStreak)", L("天", t.currentStreak == 1 ? "day" : "days"), L("连续", "Streak"))
+                    stat("\(t.longestStreak)", L("天", t.longestStreak == 1 ? "day" : "days"), L("最长", "Longest"))
+                    stat("\(Int((t.thisWeekSec / 60).rounded()))", L("分", "min"), L("近 7 天", "Last 7 days"))
                 }
             }
             if let ev = today.nextEvent { NextTalk(event: ev) }
@@ -312,9 +316,8 @@ struct RhythmColumn: View {
 /// Seven columns, Monday first. Height is minutes spoken and listened; gold is a day that counts.
 struct WeekStrip: View {
     let days: [WeekDay]
-    private let names = ["一", "二", "三", "四", "五", "六", "日"]
-
     var body: some View {
+        let names = weekdayInitials
         let top = max(15, days.map(\.minutes).max() ?? 15)
         HStack(alignment: .bottom, spacing: 8) {
             ForEach(Array(days.prefix(7).enumerated()), id: \.element.id) { i, d in
@@ -330,7 +333,7 @@ struct WeekStrip: View {
                     Text(names[i]).font(Typeface.ui(10, d.state == "today" ? .semibold : .regular))
                         .foregroundStyle(d.state == "today" ? Palette.kyanos : Palette.ink3)
                 }
-                .help("\(shortDay(d.date))：\(Int(d.minutes.rounded())) 分钟")
+                .help(L("\(shortDay(d.date))：\(Int(d.minutes.rounded())) 分钟", "\(shortDay(d.date)): \(Int(d.minutes.rounded())) min"))
             }
         }
     }
@@ -352,17 +355,17 @@ struct NextTalk: View {
         Button { Task { await state.openTray(.agenda) } } label: {
             HStack(alignment: .center, spacing: 12) {
                 VStack(alignment: .leading, spacing: 0) {
-                    Text(event.daysLeft == 0 ? "今天" : "\(event.daysLeft)").font(Typeface.display(28))
+                    Text(event.daysLeft == 0 ? L("今天", "Today") : "\(event.daysLeft)").font(Typeface.display(event.daysLeft == 0 && isEnglishUI ? 20 : 28))
                         .foregroundStyle(event.daysLeft <= 2 ? Palette.cinnabar : Palette.kyanos)
-                    if event.daysLeft > 0 { Text("天后").font(Typeface.ui(10)).foregroundStyle(Palette.ink3) }
+                    if event.daysLeft > 0 { Text(L("天后", event.daysLeft == 1 ? "day to go" : "days to go")).font(Typeface.ui(10)).foregroundStyle(Palette.ink3).fixedSize() }
                 }
                 .frame(width: 44, alignment: .leading)
                 VStack(alignment: .leading, spacing: 3) {
-                    Text("下一场，\(event.kindLabel)").font(Typeface.ui(11)).foregroundStyle(Palette.ink3)
+                    Text(L("下一场，\(event.kindLabel)", "Next up, \(event.kindLabel)")).font(Typeface.ui(11)).foregroundStyle(Palette.ink3)
                     Text(event.title).font(Typeface.display(15)).foregroundStyle(Palette.ink).lineLimit(2).multilineTextAlignment(.leading)
                         .fixedSize(horizontal: false, vertical: true)
                     if let step = event.steps.first(where: { $0.state == "today" }) ?? event.steps.first(where: { $0.state == "upcoming" }) {
-                        Text("\(step.state == "today" ? "今天" : shortDay(step.date))：\(step.title)").font(Typeface.ui(11)).foregroundStyle(Palette.ink2)
+                        Text(L("\(step.state == "today" ? "今天" : shortDay(step.date))：\(step.title)", "\(step.state == "today" ? "Today" : shortDay(step.date)): \(step.title)")).font(Typeface.ui(11)).foregroundStyle(Palette.ink2)
                     }
                 }
                 Spacer(minLength: 0)
@@ -403,12 +406,16 @@ struct StartBlock: View {
     }
 
     private var title: String {
-        if today.items.isEmpty { return "自由练一段" }
-        return today.nextItem == nil ? "今天都练完了，再来一段" : "开始今天的练习"
+        if today.items.isEmpty { return L("自由练一段", "Free practice") }
+        return today.nextItem == nil ? L("今天都练完了，再来一段", "All done today. One more?") : L("开始今天的练习", "Start today's practice")
     }
 
     private var caption: String {
-        guard let n = today.nextItem else { return "回车开始。三秒后自动录音。" }
+        guard let n = today.nextItem else { return L("回车开始。三秒后自动录音。", "Press Return. Recording starts after three seconds.") }
+        if isEnglishUI {
+            let what = n.kind == "impromptu" ? " · \(n.subtitle)" : ": “\(n.title)”"
+            return "Press Return: \(n.kindLabel)\(what), \(durationLabel(n.seconds))"
+        }
         let what = n.kind == "impromptu" ? "，讲给\(n.subtitle)" : "「\(n.title)」"
         return "回车开始：\(n.kindLabel)\(what)，\(durationLabel(n.seconds))"
     }
@@ -424,11 +431,11 @@ struct Doors: View {
     var body: some View {
         HStack(alignment: .top, spacing: 16) {
             Door(space: .shadow, shortcut: "⌘2",
-                 summary: "听别人怎么讲，再跟着讲或用自己的话复述",
+                 summary: L("听别人怎么讲，再跟着讲或用自己的话复述", "Hear how someone else says it, then speak along or retell it in your own words"),
                  items: today.items.filter { Space.of(kind: $0.kind) == .shadow },
                  footer: shadowFooter, status: shadowStatus)
             Door(space: .topic, shortcut: "⌘3",
-                 summary: "围绕一个题目、讲稿或要讲的会，自己讲",
+                 summary: L("围绕一个题目、讲稿或要讲的会，自己讲", "Speak on your own, about a prompt, a script or a talk you have coming up"),
                  items: today.items.filter { Space.of(kind: $0.kind) == .topic },
                  footer: topicFooter, status: nil)
         }
@@ -441,21 +448,21 @@ struct Doors: View {
             return s.practiceId.map { withReference.contains($0) } ?? false
         }.count
         let n = state.shadowPractices.count
-        let library = n == 0 ? "片段库还是空的" : "片段库 \(n) 段"
-        return times == 0 ? library : "\(library)，跟读和复述练过 \(times) 次"
+        let library = n == 0 ? L("片段库还是空的", "The clip library is empty") : L("片段库 \(n) 段", "\(plural(n, "clip")) in the library")
+        return times == 0 ? library : L("\(library)，跟读和复述练过 \(times) 次", "\(library), shadowed or retold \(plural(times, "time"))")
     }
 
     private var topicFooter: String {
         let scripts = state.userPractices.filter { $0.kind != "agenda" }.count
         let talks = (state.agenda?.events ?? []).filter { !$0.past }.count
-        return "讲稿 \(scripts) 份，议程 \(talks) 场"
+        return L("讲稿 \(scripts) 份，议程 \(talks) 场", "\(plural(scripts, "script")), \(plural(talks, "talk")) on the agenda")
     }
 
     private var shadowStatus: String? {
         switch today.daily.state {
-        case "running": return today.daily.message?.isEmpty == false ? today.daily.message : "正在准备今天的片段"
-        case "waiting": return "今天的片段还没准备，进去可以现在就挑"
-        case "failed": return "没挑到片段：\(today.daily.errors.last ?? today.daily.message ?? "原因不明")"
+        case "running": return today.daily.message?.isEmpty == false ? today.daily.message : L("正在准备今天的片段", "Preparing today's clips")
+        case "waiting": return L("今天的片段还没准备，进去可以现在就挑", "Today's clips aren't ready yet; go in to pick them now")
+        case "failed": return L("没挑到片段：", "No clips picked: ") + (today.daily.errors.last ?? today.daily.message ?? L("原因不明", "unknown reason"))
         default: return nil
         }
     }
@@ -486,7 +493,7 @@ struct Door: View {
                 Text(summary).font(Typeface.ui(12)).foregroundStyle(Palette.ink2)
                 VStack(alignment: .leading, spacing: 8) {
                     if items.isEmpty {
-                        Text(space == .shadow ? "今天没有安排跟读" : "今天没有安排题目").font(Typeface.ui(13)).foregroundStyle(Palette.ink3)
+                        Text(space == .shadow ? L("今天没有安排跟读", "No shadowing planned today") : L("今天没有安排题目", "No prompt planned today")).font(Typeface.ui(13)).foregroundStyle(Palette.ink3)
                     }
                     ForEach(items) { item in
                         HStack(alignment: .firstTextBaseline, spacing: 10) {
@@ -526,10 +533,10 @@ struct RecordSection: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 18) {
             HStack(alignment: .firstTextBaseline) {
-                Text("记录").font(Typeface.display(24)).foregroundStyle(Palette.ink)
-                Text("每一次的结论，点开看完整分析").font(Typeface.ui(12)).foregroundStyle(Palette.ink3)
+                Text(L("记录", "Record")).font(Typeface.display(24)).foregroundStyle(Palette.ink)
+                Text(L("每一次的结论，点开看完整分析", "The verdict on every take; click one for the full analysis")).font(Typeface.ui(12)).foregroundStyle(Palette.ink3)
                 Spacer()
-                Button("全部记录") { Task { await state.openTray(.history) } }.buttonStyle(InkButtonStyle())
+                Button(L("全部记录", "All takes")) { Task { await state.openTray(.history) } }.buttonStyle(InkButtonStyle())
             }
             HStack(alignment: .top, spacing: 28) {
                 RecentList(rows: Array(state.recent.prefix(8)))
@@ -539,9 +546,11 @@ struct RecordSection: View {
             if let ins = state.insights {
                 VStack(alignment: .leading, spacing: 10) {
                     HStack(alignment: .firstTextBaseline) {
-                        Text("这一年").font(Typeface.display(19)).foregroundStyle(Palette.ink)
+                        Text(L("这一年", "The year")).font(Typeface.display(19)).foregroundStyle(Palette.ink)
                         Spacer()
-                        Text(hovered.map { "\(shortDay($0.date))：录音 \(formatDuration($0.recordSec))，听参照 \(formatDuration($0.listenRefSec))" } ?? "颜色越深，那天练得越多")
+                        Text(hovered.map { L("\(shortDay($0.date))：录音 \(formatDuration($0.recordSec))，听参照 \(formatDuration($0.listenRefSec))",
+                                             "\(shortDay($0.date)): recorded \(formatDuration($0.recordSec)), listened \(formatDuration($0.listenRefSec))") }
+                             ?? L("颜色越深，那天练得越多", "The darker the dot, the more practice that day"))
                             .font(Typeface.ui(12)).foregroundStyle(Palette.ink2)
                     }
                     Heatmap(days: ins.days, hovered: $hovered)
@@ -560,7 +569,7 @@ struct RecentList: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             if rows.isEmpty {
-                Text("还没有录音。录完第一段，结论会记在这里。").font(Typeface.ui(13)).foregroundStyle(Palette.ink3).padding(.vertical, 14)
+                Text(L("还没有录音。录完第一段，结论会记在这里。", "No recordings yet. After your first take, its verdict lands here.")).font(Typeface.ui(13)).foregroundStyle(Palette.ink3).padding(.vertical, 14)
             }
             ForEach(Array(rows.enumerated()), id: \.element.id) { i, r in
                 if i > 0 { Hairline() }
@@ -584,9 +593,9 @@ struct RecentRow: View {
                     Text(String(row.createdAt.dropFirst(11).prefix(5))).font(Typeface.ui(showDay ? 11 : 12)).monospacedDigit()
                         .foregroundStyle(showDay ? Palette.ink3 : Palette.ink2)
                 }
-                .frame(width: showDay ? 64 : 48, alignment: .leading)
+                .frame(width: showDay ? (isEnglishUI ? 76 : 64) : 48, alignment: .leading)
                 Text(row.kindLabel).font(Typeface.ui(11, .medium)).foregroundStyle(row.space == "shadow" ? Palette.ochre : Palette.kyanos)
-                    .frame(width: 34, alignment: .leading)
+                    .frame(width: isEnglishUI ? 62 : 34, alignment: .leading)
                 VStack(alignment: .leading, spacing: 2) {
                     Text(row.headline).font(Typeface.display(15)).foregroundStyle(Palette.ink).lineLimit(1)
                     Text(row.practiceTitle ?? row.title).font(Typeface.ui(11)).foregroundStyle(Palette.ink3).lineLimit(1)
@@ -594,7 +603,7 @@ struct RecentRow: View {
                 Spacer(minLength: 10)
                 HStack(alignment: .firstTextBaseline, spacing: 3) {
                     Text("\(Int(row.wpm.rounded()))").font(Typeface.display(18)).monospacedDigit().foregroundStyle(Palette.ink)
-                    Text("词/分").font(Typeface.ui(10)).foregroundStyle(Palette.ink3)
+                    Text(L("词/分", "wpm")).font(Typeface.ui(10)).foregroundStyle(Palette.ink3)
                 }
                 Image(systemName: "chevron.right").font(.system(size: 10, weight: .semibold)).foregroundStyle(hover ? Palette.kyanos : Palette.ink3)
             }

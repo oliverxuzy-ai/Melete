@@ -187,7 +187,10 @@ struct Metrics: Codable, Hashable {
     let coverage: Coverage?
 
     var isChinese: Bool { language.hasPrefix("zh") }
-    var unitLabel: String { isChinese ? "字" : "词" }
+    /// What a "word" is in this recording: a character in Chinese, a word in English.
+    var unitLabel: String { isChinese ? L("字", "chars") : L("词", "words") }
+    /// The pace unit: 词/分, 字/分, wpm.
+    var rateUnit: String { isChinese ? L("字/分", "chars/min") : L("词/分", "wpm") }
 }
 
 struct Session: Codable, Hashable, Identifiable {
@@ -261,12 +264,12 @@ enum Scenario: String, CaseIterable, Identifiable {
     var id: String { rawValue }
     var label: String {
         switch self {
-        case .presentation: return "演示 / 汇报"
-        case .meeting: return "会议发言"
-        case .interview: return "面试"
-        case .pitch: return "电梯演讲"
-        case .smalltalk: return "闲聊 / 寒暄"
-        case .other: return "其他"
+        case .presentation: return L("演示 / 汇报", "Presentation")
+        case .meeting: return L("会议发言", "Meeting")
+        case .interview: return L("面试", "Interview")
+        case .pitch: return L("电梯演讲", "Elevator pitch")
+        case .smalltalk: return L("闲聊 / 寒暄", "Small talk")
+        case .other: return L("其他", "Other")
         }
     }
     static func label(for raw: String?) -> String { Scenario(rawValue: raw ?? "")?.label ?? (raw ?? "") }
@@ -275,7 +278,7 @@ enum Scenario: String, CaseIterable, Identifiable {
 enum SpeechLanguage: String, CaseIterable, Identifiable {
     case en, zh, auto
     var id: String { rawValue }
-    var label: String { self == .en ? "English" : self == .zh ? "中文" : "自动" }
+    var label: String { self == .en ? "English" : self == .zh ? "中文" : L("自动", "Auto") }
     var localeIdentifier: String { self == .zh ? "zh-CN" : "en-US" }
 }
 
@@ -393,10 +396,10 @@ struct PlanItem: Codable, Hashable, Identifiable {
     var done: Bool { sessionId != nil }
     var kindLabel: String {
         switch kind {
-        case "shadow": return "跟读"
-        case "retell": return "复述"
-        case "agenda": return "备讲"
-        default: return "即兴"
+        case "shadow": return L("跟读", "Shadow")
+        case "retell": return L("复述", "Retell")
+        case "agenda": return L("备讲", "Prep")
+        default: return L("即兴", "Impromptu")
         }
     }
 }
@@ -605,12 +608,12 @@ struct RecentSession: Codable, Hashable, Identifiable {
 
     var kindLabel: String {
         switch kind {
-        case "shadow": return "跟读"
-        case "retell": return "复述"
-        case "agenda": return "备讲"
-        case "impromptu": return "即兴"
-        case "topic": return "讲稿"
-        default: return "自由"
+        case "shadow": return L("跟读", "Shadow")
+        case "retell": return L("复述", "Retell")
+        case "agenda": return L("备讲", "Prep")
+        case "impromptu": return L("即兴", "Impromptu")
+        case "topic": return L("讲稿", "Script")
+        default: return L("自由", "Free")
         }
     }
 }

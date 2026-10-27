@@ -86,25 +86,25 @@ final class StageModel {
     // MARK: what the controls say
 
     /// The left button only ever plays the original; the main button only ever records you.
-    var listenLabel: String { phase == .listening ? (player.playing ? "暂停" : "继续听") : "听原文" }
-    var startLabel: String { mode == .shadow ? "开始跟读" : mode == .retell ? "开始复述" : "开始" }
+    var listenLabel: String { phase == .listening ? (player.playing ? L("暂停", "Pause") : L("继续听", "Resume")) : L("听原文", "Hear original") }
+    var startLabel: String { mode == .shadow ? L("开始跟读", "Start shadowing") : mode == .retell ? L("开始复述", "Start retelling") : L("开始", "Start") }
     var mainLabel: String {
         switch phase {
-        case .countdown: return "现在开始"
-        case .recording: return "停止"
-        case .analyzing: return "分析中"
-        case .queued: return "再录一段"
+        case .countdown: return L("现在开始", "Start now")
+        case .recording: return L("停止", "Stop")
+        case .analyzing: return L("分析中", "Analyzing")
+        case .queued: return L("再录一段", "Record another")
         default: return startLabel
         }
     }
-    var againLabel: String { mode == .shadow ? "再跟一遍" : mode == .retell ? "再复述一遍" : "再来一遍" }
+    var againLabel: String { mode == .shadow ? L("再跟一遍", "Shadow again") : mode == .retell ? L("再复述一遍", "Retell again") : L("再来一遍", "Go again") }
     /// What the water clock says while it waits for you.
     var readyPrompt: String {
         switch mode {
-        case .shadow: return heardThrough ? "听完了\n回车开始跟读" : "回车开始跟读"
-        case .retell where practice?.reference != nil: return heardThrough ? "听完了\n回车开始复述" : "先听原文\n再复述"
-        case .retell: return "回车开始复述"
-        default: return "回车开始"
+        case .shadow: return heardThrough ? L("听完了\n回车开始跟读", "Heard it\nReturn to shadow") : L("回车开始跟读", "Return to shadow")
+        case .retell where practice?.reference != nil: return heardThrough ? L("听完了\n回车开始复述", "Heard it\nReturn to retell") : L("先听原文\n再复述", "Listen first\nthen retell")
+        case .retell: return L("回车开始复述", "Return to retell")
+        default: return L("回车开始", "Return to start")
         }
     }
     /// Names and terms from what is on stage, so the live captions catch them.
@@ -133,7 +133,7 @@ final class StageModel {
         prompt = item.prompt
         hint = item.detail
         targetSeconds = Double(item.seconds)
-        eyebrow = item.kind == "impromptu" ? "\(item.kindLabel)，讲给\(item.subtitle)" : item.kindLabel
+        eyebrow = StageModel.eyebrow(for: item)
         if navigate { state?.go(Space.of(kind: item.kind)) }
         Task {
             if let pid = item.practiceId, let p = await state?.fetchPractice(pid) {
@@ -152,8 +152,9 @@ final class StageModel {
         reset()
         mode = m
         title = p.title
-        eyebrow = m == .shadow ? "跟读" : m == .retell ? "复述" : (p.kind == "agenda" ? "备讲" : "讲稿")
-        hint = m == .shadow ? "戴耳机，跟着原声说。" : m == .retell ? "听完一遍，用自己的话讲。" : (p.notes.isEmpty ? nil : p.notes)
+        eyebrow = StageModel.eyebrow(for: p, mode: m)
+        hint = m == .shadow ? L("戴耳机，跟着原声说。", "Put on headphones and speak along with the original.")
+            : m == .retell ? L("听完一遍，用自己的话讲。", "Listen once, then say it in your own words.") : (p.notes.isEmpty ? nil : p.notes)
         attachPractice(p)
         targetSeconds = m == .retell ? 90 : (m == .shadow ? (p.reference?.durationSec ?? 90) / rate : nil)
         if navigate { state?.go(m == .shadow || m == .retell ? .shadow : .topic) }
@@ -164,11 +165,41 @@ final class StageModel {
         StageModel.note("present free auto \(autoStart)")
         reset()
         mode = .free
-        title = "随便说一段"
-        eyebrow = "自由讲"
-        hint = "想到什么说什么。一分钟就够。"
+        title = L("随便说一段", "Say anything")
+        eyebrow = L("自由讲", "Free talk")
+        hint = L("想到什么说什么。一分钟就够。", "Say whatever comes to mind. A minute is enough.")
         if navigate { state?.go(.topic) }
         if autoStart { begin() }
+    }
+
+    static func eyebrow(for item: PlanItem) -> String {
+        item.kind == "impromptu" ? L("\(item.kindLabel)，讲给\(item.subtitle)", "\(item.kindLabel) · \(item.subtitle)") : item.kindLabel
+    }
+
+    static func eyebrow(for p: Practice, mode m: Mode) -> String {
+        m == .shadow ? L("跟读", "Shadow") : m == .retell ? L("复述", "Retell") : (p.kind == "agenda" ? L("备讲", "Prep") : L("讲稿", "Script"))
+    }
+
+    /// The interface language changed: the same material goes back on stage so its labels
+    /// (and the plan item's text, which the server writes) follow. A verdict only renames its eyebrow.
+    func relabel() {
+        switch phase {
+        case .ready:
+            if let it = item {
+                let fresh = state?.today?.items.first(where: { $0.id == it.id }) ?? it
+                present(item: fresh, autoStart: false, navigate: false)
+            } else if let p = practice {
+                present(practice: p, mode: mode, autoStart: false, navigate: false)
+            } else if mode == .free {
+                presentFree(autoStart: false, navigate: false)
+            }
+        case .result:
+            if let it = item { eyebrow = StageModel.eyebrow(for: it) }
+            else if let p = practice { eyebrow = StageModel.eyebrow(for: p, mode: mode) }
+            else if mode == .free { eyebrow = L("自由讲", "Free talk") }
+        default:
+            break
+        }
     }
 
     /// What a studio shows when you arrive: its part of today's plan, without starting.
@@ -434,12 +465,14 @@ final class StageModel {
             try? FileManager.default.removeItem(at: url)
             if token == presentID { phase = .ready }
             showNotice(clock >= 4
-                       ? "麦克风只录到 \(Int(captured.rounded())) 秒就断了，这一段没有保存。看看 系统设置 > 声音 > 输入 选的是哪个麦克风。"
-                       : "录音不到两秒，没有保存。")
+                       ? L("麦克风只录到 \(Int(captured.rounded())) 秒就断了，这一段没有保存。看看 系统设置 > 声音 > 输入 选的是哪个麦克风。",
+                           "The microphone cut out after \(Int(captured.rounded())) s, so this take wasn't saved. Check which microphone is selected under System Settings > Sound > Input.")
+                       : L("录音不到两秒，没有保存。", "Under two seconds, so it wasn't saved."))
             return
         }
         if clock > 8, captured < clock * 0.7 {
-            showNotice("麦克风中途断开过，录到 \(Int(captured.rounded())) 秒，比实际讲的短。")
+            showNotice(L("麦克风中途断开过，录到 \(Int(captured.rounded())) 秒，比实际讲的短。",
+                         "The microphone dropped out partway: \(Int(captured.rounded())) s recorded, shorter than you spoke."))
         }
         let drill: Drill? = item.map { Drill(item: $0.id, kind: $0.kind, promptId: $0.promptId, date: state.today?.date) }
             ?? (mode == .free ? nil : Drill(item: nil, kind: mode.rawValue, promptId: nil, date: nil))
@@ -447,7 +480,8 @@ final class StageModel {
                                          scenario: scenario, practiceId: practice?.id, drill: drill,
                                          onError: { [weak self] message in self?.showNotice(message) })
         guard token == presentID else {
-            if let r = session?.review { showNotice("刚才那一段：\(r.headline)。完整分析在总览的记录里。") }
+            if let r = session?.review { showNotice(L("刚才那一段：\(r.headline)。完整分析在总览的记录里。",
+                                                      "That last take: \(r.headline). The full analysis is in the record on the Overview.")) }
             return
         }
         if let session {
@@ -480,9 +514,9 @@ final class StageModel {
 
     private var sessionTitle: String {
         switch mode {
-        case .impromptu: return item.map { "\($0.kindLabel)：\(String(($0.prompt ?? $0.title).prefix(40)))" } ?? title
-        case .shadow: return "跟读 · \(title)"
-        case .retell: return "复述 · \(title)"
+        case .impromptu: return item.map { L("\($0.kindLabel)：\(String(($0.prompt ?? $0.title).prefix(40)))", "\($0.kindLabel): \(String(($0.prompt ?? $0.title).prefix(40)))") } ?? title
+        case .shadow: return L("跟读 · \(title)", "Shadow · \(title)")
+        case .retell: return L("复述 · \(title)", "Retell · \(title)")
         default: return title
         }
     }
@@ -530,7 +564,7 @@ final class StageModel {
         followsVoice = false
         startedAt = nil
         phase = .ready
-        showNotice("这一段放弃了，没有保存。")
+        showNotice(L("这一段放弃了，没有保存。", "Take discarded, nothing saved."))
     }
 
     /// Esc: back to ready with the same material (stops listening or the countdown); while
@@ -648,10 +682,10 @@ struct LiveLines: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text("实时字幕").font(Typeface.ui(12, .medium)).foregroundStyle(Palette.ink2)
+            Text(L("实时字幕", "Live captions")).font(Typeface.ui(12, .medium)).foregroundStyle(Palette.ink2)
             let said = sentences.suffix(8).joined(separator: " ")
             if said.isEmpty && volatile.isEmpty {
-                Text(recording ? "开始说话……" : "录音时这里会出现你说的话。").font(Typeface.ui(13)).foregroundStyle(Palette.ink3)
+                Text(recording ? L("开始说话……", "Start speaking…") : L("录音时这里会出现你说的话。", "What you say shows up here while recording.")).font(Typeface.ui(13)).foregroundStyle(Palette.ink3)
             } else {
                 // One running paragraph with the newest words at the bottom, never cut off;
                 // older lines slide up under a fade. Words still being recognised are lighter.
@@ -703,19 +737,19 @@ struct VerdictCard: View {
                     }
                 }
             } else {
-                Text("录好了").font(Typeface.display(38))
+                Text(L("录好了", "Recorded")).font(Typeface.display(38))
             }
             HStack(spacing: 12) {
                 // Return belongs to a tray's form while one is open.
                 if stage.nextItem != nil {
-                    Button("下一项") { stage.goNext() }.primaryGlass().keyboardShortcut(state.tray == nil && state.space != .home ? .defaultAction : nil)
+                    Button(L("下一项", "Next")) { stage.goNext() }.primaryGlass().keyboardShortcut(state.tray == nil && state.space != .home ? .defaultAction : nil)
                     Button(stage.againLabel) { stage.again() }.buttonStyle(.glass).controlSize(.large)
                 } else {
                     Button(stage.againLabel) { stage.again() }.primaryGlass().keyboardShortcut(state.tray == nil && state.space != .home ? .defaultAction : nil)
                 }
-                Button("看完整分析") { stage.openDetails() }.buttonStyle(.glass).controlSize(.large)
+                Button(L("看完整分析", "Full analysis")) { stage.openDetails() }.buttonStyle(.glass).controlSize(.large)
                 Spacer()
-                Button("收起") { stage.cancel() }.buttonStyle(InkButtonStyle())
+                Button(L("收起", "Close")) { stage.cancel() }.buttonStyle(InkButtonStyle())
             }
         }
         .padding(34)
@@ -737,7 +771,7 @@ struct FocusCell: View {
                 Text(metric.unit).font(Typeface.ui(11)).foregroundStyle(Palette.ink2)
             }
             HStack(spacing: 6) {
-                Text("目标 \(metric.target)").font(Typeface.ui(11)).foregroundStyle(Palette.ink3)
+                Text(L("目标 \(metric.target)", "Target \(metric.target)")).font(Typeface.ui(11)).foregroundStyle(Palette.ink3)
                 if let d = metric.delta, d != 0 {
                     Text("\(d > 0 ? "↑" : "↓")\(fmt1(abs(d)))").font(Typeface.ui(11, .medium))
                         .foregroundStyle(Palette.ink2)

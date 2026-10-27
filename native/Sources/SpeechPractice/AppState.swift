@@ -21,9 +21,9 @@ enum Space: String, CaseIterable, Identifiable {
     var id: String { rawValue }
     var label: String {
         switch self {
-        case .home: return "总览"
-        case .shadow: return "跟读"
-        case .topic: return "主题"
+        case .home: return L("总览", "Overview")
+        case .shadow: return L("跟读", "Shadowing")
+        case .topic: return L("主题", "Topics")
         }
     }
     /// The Greek word each space is named after, shown when a studio is empty.
@@ -312,11 +312,32 @@ final class AppState {
             let body = try JSONSerialization.data(withJSONObject: patch)
             var req = URLRequest(url: api.url("api/settings"))
             req.httpMethod = "PUT"; req.httpBody = body
+            API.stamp(&req)
             req.setValue("application/json", forHTTPHeaderField: "Content-Type")
             let (data, _) = try await URLSession.shared.data(for: req)
             settings = try API.decoder.decode(SettingsPayload.self, from: data)
             await refreshToday(quiet: true)
         } catch { report(error) }
+    }
+
+    /// The interface language changed: everything the server wrote (the plan, verdicts, the
+    /// recap, training blocks) is fetched again in the new language, and an idle stage takes
+    /// its material again so its labels follow.
+    func languageChanged() async {
+        // Notification buttons and texts are fixed when registered, so register them again in the new language.
+        Reminders.shared.setup()
+        let remindersOn = UserDefaults.standard.bool(forKey: "remindersOn")
+        guard api != nil else { return }
+        await refreshToday(quiet: true)
+        await loadRecent()
+        await loadRecap()
+        await loadSettings()
+        if remindersOn { Reminders.shared.schedule(at: settings?.daily.notifyTime ?? "21:30") }
+        if agenda != nil { await loadAgenda() }
+        if daily != nil { await loadDaily() }
+        if !history.isEmpty, let api, let h: [RecentSession] = try? await api.get("api/recent?limit=1000") { history = h }
+        if let s = currentSession { await open(sessionID: s.id) }
+        stage?.relabel()
     }
 
     func reloadPractice() async {
@@ -416,9 +437,10 @@ final class AppState {
     }
 
     private func rawSend(_ method: String, _ path: String, _ json: [String: Any]?) async throws -> Data {
-        guard let api else { throw APIError(message: "分析服务还没启动") }
+        guard let api else { throw APIError(message: L("分析服务还没启动", "The analysis service hasn't started yet")) }
         var req = URLRequest(url: api.url(path))
         req.httpMethod = method
+        API.stamp(&req)
         req.timeoutInterval = 600
         if let json {
             req.httpBody = try JSONSerialization.data(withJSONObject: json)
@@ -531,7 +553,8 @@ final class AppState {
                 try? FileManager.default.removeItem(at: fileURL)
             } else {
                 keepForLater(fileURL, language: language, title: title, scenario: scenario, practiceId: practiceId, drill: drill)
-                message = "这一段没分析成功（\(message)）。录音已经存好，分析服务恢复后会自动补上。"
+                message = L("这一段没分析成功（\(message)）。录音已经存好，分析服务恢复后会自动补上。",
+                            "This take couldn't be analyzed (\(message)). The recording is saved and will be analyzed once the service is back.")
             }
             if let onError { onError(message) } else { errorMessage = message }
             return nil

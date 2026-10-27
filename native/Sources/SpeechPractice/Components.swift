@@ -82,7 +82,7 @@ struct StepDots: View {
         }
         .animation(Motion.glass, value: current)
         .accessibilityElement()
-        .accessibilityLabel("第 \(min(current + 1, count)) 步，共 \(count) 步")
+        .accessibilityLabel(L("第 \(min(current + 1, count)) 步，共 \(count) 步", "Step \(min(current + 1, count)) of \(count)"))
     }
 }
 
@@ -109,14 +109,14 @@ struct LaurelWreath: View {
             if showCount {
                 VStack(spacing: 0) {
                     RollingNumber(value: Double(doneCount), font: Typeface.display(size * 0.3))
-                    Text("本周目标 \(target) 天").font(Typeface.ui(max(9, size * 0.08))).foregroundStyle(Palette.ink2)
+                    Text(L("本周目标 \(target) 天", "Goal: \(plural(target, "day"))")).font(Typeface.ui(max(9, size * 0.08))).foregroundStyle(Palette.ink2)
                 }
                 .offset(y: size * 0.02)
             }
         }
         .frame(width: size, height: size)
         .accessibilityElement()
-        .accessibilityLabel("本周练了 \(doneCount) 天，目标 \(target) 天")
+        .accessibilityLabel(L("本周练了 \(doneCount) 天，目标 \(target) 天", "Practiced \(plural(doneCount, "day")) this week, goal \(target)"))
     }
 
     private var radius: CGFloat { size * 0.40 }
@@ -334,7 +334,8 @@ struct PaceGauge: View {
         }
         .frame(height: 24)
         .accessibilityElement()
-        .accessibilityLabel(wpm.map { "语速 \(Int($0))，目标 \(Int(band.lowerBound)) 到 \(Int(band.upperBound))" } ?? "目标语速 \(Int(band.lowerBound)) 到 \(Int(band.upperBound))")
+        .accessibilityLabel(wpm.map { L("语速 \(Int($0))，目标 \(Int(band.lowerBound)) 到 \(Int(band.upperBound))", "Pace \(Int($0)), target \(Int(band.lowerBound))–\(Int(band.upperBound))") }
+                            ?? L("目标语速 \(Int(band.lowerBound)) 到 \(Int(band.upperBound))", "Target pace \(Int(band.lowerBound))–\(Int(band.upperBound))"))
     }
 }
 

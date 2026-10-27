@@ -39,8 +39,8 @@ struct RootView: View {
         .ignoresSafeArea(.container, edges: .top)
         .background(ChromeReader { chrome = $0 })
         .tint(Palette.kyanos)
-        .alert("出错了", isPresented: Binding(get: { state.errorMessage != nil }, set: { if !$0 { state.errorMessage = nil } })) {
-            Button("好") {}
+        .alert(L("出错了", "Something went wrong"), isPresented: Binding(get: { state.errorMessage != nil }, set: { if !$0 { state.errorMessage = nil } })) {
+            Button(L("好", "OK")) {}
         } message: { Text(state.errorMessage ?? "") }
         .onReceive(NotificationCenter.default.publisher(for: .newPractice)) { _ in
             guard !stage.isActive else { return }
@@ -225,9 +225,9 @@ struct NavCapsule: View {
 
     private func help(_ s: Space) -> String {
         switch s {
-        case .home: return "总览：节奏、表现和记录（⌘1）"
-        case .shadow: return "跟读：先听别人怎么讲，再跟着讲（⌘2）"
-        case .topic: return "主题：围绕一个题目或讲稿，自己讲（⌘3）"
+        case .home: return L("总览：节奏、表现和记录（⌘1）", "Overview: rhythm, performance and the record (⌘1)")
+        case .shadow: return L("跟读：先听别人怎么讲，再跟着讲（⌘2）", "Shadowing: hear how someone else says it, then speak along (⌘2)")
+        case .topic: return L("主题：围绕一个题目或讲稿，自己讲（⌘3）", "Topics: speak on your own about a prompt or a script (⌘3)")
         }
     }
 }
@@ -250,7 +250,7 @@ struct TopBarTrailing: View {
                 }
                 .buttonStyle(.plain)
                 .glassEffect(.regular.interactive(), in: .capsule)
-                .help("本周练了 \(w.done) 天，目标 \(w.target) 天")
+                .help(L("本周练了 \(w.done) 天，目标 \(w.target) 天", "Practiced \(plural(w.done, "day")) this week, goal \(w.target)"))
             }
             Button { Task { await state.openTray(.settings) } } label: {
                 Image(systemName: "gearshape").font(.system(size: 14, weight: .medium)).foregroundStyle(Palette.ink2)
@@ -258,7 +258,7 @@ struct TopBarTrailing: View {
             }
             .buttonStyle(.plain)
             .glassEffect(.regular.interactive(), in: .circle)
-            .help("设置（⌘,）")
+            .help(L("设置（⌘,）", "Settings (⌘,)"))
         }
         .opacity(stage.isActive ? 0.3 : 1)
         .disabled(stage.isActive)
@@ -295,15 +295,15 @@ struct ServerToast: View {
         switch state.server.status {
         case .ready:
             if !state.pending.isEmpty {
-                toast { ProgressView().controlSize(.mini); Text("正在分析启动前录的 \(state.pending.count) 段") }
+                toast { ProgressView().controlSize(.mini); Text(L("正在分析启动前录的 \(state.pending.count) 段", "Analyzing \(plural(state.pending.count, "take")) recorded before startup")) }
             }
         case .starting:
-            toast { ProgressView().controlSize(.mini); Text("分析服务在后台启动。现在就可以录，录完自动分析。") }
+            toast { ProgressView().controlSize(.mini); Text(L("分析服务在后台启动。现在就可以录，录完自动分析。", "The analysis service is starting in the background. Record now; it's analyzed when you finish.")) }
         case .failed(let msg):
             toast {
                 Image(systemName: "exclamationmark.triangle").foregroundStyle(Palette.ochre)
-                Text("分析服务没起来：\(msg)").lineLimit(2)
-                Button("重试") { Task { await state.boot() } }.buttonStyle(InkButtonStyle())
+                Text(L("分析服务没起来：", "The analysis service didn't start: ") + msg).lineLimit(2)
+                Button(L("重试", "Retry")) { Task { await state.boot() } }.buttonStyle(InkButtonStyle())
             }
         }
     }
