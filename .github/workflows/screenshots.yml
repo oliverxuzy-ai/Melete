@@ -1,0 +1,105 @@
+# Redraws the README screenshots (.github/assets/screenshots) from made-up practice data
+# and commits them to the branch it ran on. Run it from the Actions tab after a UI change:
+# Actions > Screenshots > Run workflow, then pick the branch.
+# It also runs on pull requests that change the screenshot scripts.
+name: Screenshots
+
+on:
+  workflow_dispatch:
+    inputs:
+      pages:
+        description: Pages to draw (names in native/Sources/SpeechPractice/RenderHarness.swift)
+        default: window-home,window-shadow-min,window-retell-listen-min,window-verdict-min
+  pull_request:
+    paths:
+      - ".github/screenshots/**"
+      - ".github/workflows/screenshots.yml"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: write # commit the new screenshots
+
+jobs:
+  gate:
+    name: Anything to redraw?
+    # Pull requests from forks can't be pushed to.
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    outputs:
+      redraw: ${{ steps.check.outputs.redraw }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ github.head_ref || github.ref }}
+          fetch-depth: 0
+      # A later push to the pull request redraws only if it touched the scripts or the app.
+      - id: check
+        env:
+          ACTION: ${{ github.event.action }}
+          BEFORE: ${{ github.event.before }}
+        run: |
+          redraw=true
+          if [ "$ACTION" = synchronize ] && git cat-file -e "$BEFORE^{commit}" 2>/dev/null &&
+             git diff --quiet "$BEFORE" HEAD -- .github/screenshots .github/workflows/screenshots.yml native '*.py'; then
+            redraw=false
+          fi
+          echo "redraw=$redraw" | tee -a "$GITHUB_OUTPUT"
+
+  render:
+    name: Draw screenshots
+    needs: gate
+    if: needs.gate.outputs.redraw == 'true'
+    runs-on: macos-26
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ github.head_ref || github.ref }}
+
+      - uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+          cache-dependency-glob: requirements.txt
+
+      - name: Build
+        env:
+          HOMEBREW_NO_AUTO_UPDATE: "1"
+        run: |
+          ./build_native.sh
+          brew install pngquant || echo "No pngquant; the screenshots stay unquantized."
+
+      - name: Seed demo data and draw
+        env:
+          PAGES: ${{ inputs.pages || 'window-home,window-shadow-min,window-retell-listen-min,window-verdict-min' }}
+        run: .github/screenshots/render.sh
+
+      - uses: actions/upload-artifact@v6
+        with:
+          name: screenshots
+          path: .github/assets/screenshots/
+          retention-days: 14
+
+      - name: Commit
+        env:
+          BRANCH: ${{ github.head_ref || github.ref_name }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A .github/assets/screenshots
+          if git diff --cached --quiet; then
+            echo "Screenshots unchanged."
+            exit 0
+          fi
+          git commit -m "docs: redraw README screenshots"
+          for attempt in 1 2 3; do
+            git push origin "HEAD:refs/heads/$BRANCH" && break
+            [ "$attempt" = 3 ] && exit 1
+            git pull --rebase origin "$BRANCH"
+          done
+          {
+            echo "### Screenshots committed to \`$BRANCH\`"
+            git show --stat --format= HEAD
+          } >> "$GITHUB_STEP_SUMMARY"
