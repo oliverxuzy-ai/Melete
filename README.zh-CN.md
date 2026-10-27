@@ -81,7 +81,7 @@
 | 芯片 | Apple Silicon |
 | 磁盘 | 英文模型约 500 MB，第一次启动时下载；中文模型约 1.6 GB，第一次录中文时才加载 |
 | 权限 | 麦克风；实时字幕需要语音识别 |
-| 界面语言 | 简体中文（英文版在做） |
+| 界面语言 | 简体中文或英文，随时在 设置 > 语言 里切换 |
 
 ## 快速上手
 
@@ -169,6 +169,7 @@ cd Melete
 调试参数（对 `dist/Melete.app/Contents/MacOS/SpeechPractice`）：
 
 - `SPEECH_SERVER_URL=http://127.0.0.1:8765` 连开发服务而不拉子进程。
+- `--lang en|zh` 这一次用指定的界面语言启动，不改设置。`--render`、`--e2e` 等测试没给 `--lang` 时用中文。
 - `--space home|shadow|topic` 直接打开某个地方，`--tray settings|history|clips|agenda|newTopic|newEvent|addLink` 直接打开某个抽屉。
 - `--selftest` 对 `SPEECH_SERVER_URL` 解析所有接口然后退出。
 - `--render <目录>` 用离屏渲染把各个地方画成浅色和深色的 PNG 然后退出，用来审视设计（`RENDER_ONLY=home,settings` 只画其中几张）。需要用 `open` 启动（直接执行二进制时 SwiftUI 不开主窗口）：
@@ -194,10 +195,11 @@ cd Melete
 
 | 路径 | 是什么 |
 |---|---|
-| `native/` | SwiftUI App。`Theme.swift` 是设计令牌，`Components.swift` 是水钟、桂冠、语速刻度等组件，`RootView.swift` 是窗口和顶部导航，`HomeView.swift` 是总览，`StudioView.swift` 是跟读和主题两个工作室，`Stage.swift` 是讲台和点评卡，`Trays.swift` 是底部抽屉，`SettingsPanel.swift` 是设置，`SystemIntegration.swift` 是通知、全局快捷键、开机启动和菜单栏，`E2E*.swift` 是端到端测试 |
+| `native/` | SwiftUI App。`Theme.swift` 是设计令牌，`Components.swift` 是水钟、桂冠、语速刻度等组件，`RootView.swift` 是窗口和顶部导航，`HomeView.swift` 是总览，`StudioView.swift` 是跟读和主题两个工作室，`Stage.swift` 是讲台和点评卡，`Trays.swift` 是底部抽屉，`SettingsPanel.swift` 是设置，`SystemIntegration.swift` 是通知、全局快捷键、开机启动和菜单栏，`L10n.swift` 是界面语言，`E2E*.swift` 是端到端测试 |
 | `server.py` | FastAPI 服务 |
 | `coach.py` | 训练周期、目标、题库、今日计划、议程、点评、周报 |
 | `daily.py` | 每日片段流水线和后台任务 |
+| `i18n.py` | 服务端写计划、点评和片段说明时用哪种语言，跟着 App 走 |
 | `analysis.py` | 转写与指标计算。`coverage.py` 算要点覆盖，`shadow.py` 做跟读字幕对齐 |
 | `build_assets/` | App 图标，Icon Composer 格式，由 `make_icon.swift` 生成、`make_icon.sh` 编译 |
 | `static/`、`app.py`、`build_app.sh` | 旧的网页版，不再维护 |
