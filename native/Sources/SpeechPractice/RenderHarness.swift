@@ -78,22 +78,107 @@ enum RenderHarness {
             if let only, !only.contains(name) { continue }
             for scheme in [ColorScheme.light, .dark] {
                 log("render: \(name) \(scheme)")
-                let content = make()
-                    .environment(state).environment(recorder).environment(stage)
-                    .frame(width: width, height: height)
-                    .background(Palette.marble)
-                    .environment(\.colorScheme, scheme)
-                    .environment(\.renderMode, true)
-                let r = ImageRenderer(content: content)
-                r.scale = 2
-                r.proposedSize = ProposedViewSize(width: width, height: height)
-                if let img = r.nsImage, let tiff = img.tiffRepresentation, let rep = NSBitmapImageRep(data: tiff),
-                   let png = rep.representation(using: .png, properties: [:]) {
-                    try? png.write(to: dir.appendingPathComponent("\(name)-\(scheme == .light ? "light" : "dark").png"))
-                }
+                draw(make(), width: width, height: height, scheme: scheme, scale: 2,
+                     state: state, recorder: recorder, stage: stage,
+                     to: dir.appendingPathComponent("\(name)-\(scheme == .light ? "light" : "dark").png"))
             }
         }
+        // Moving pictures are a few hundred frames each, so they are drawn only when named.
+        if let only, only.contains("window-shadow-live") {
+            await shadowLoop(name: "window-shadow-live", stage: stage, recorder: recorder, state: state, into: dir)
+        }
         exit(0)
+    }
+
+    static func draw(_ view: AnyView, width: CGFloat, height: CGFloat?, scheme: ColorScheme, scale: CGFloat,
+                     clock: Date? = nil, line: Double? = nil,
+                     state: AppState, recorder: Recorder, stage: StageModel, to url: URL) {
+        let content = view
+            .environment(state).environment(recorder).environment(stage)
+            .frame(width: width, height: height)
+            .background(Palette.marble)
+            .environment(\.colorScheme, scheme)
+            .environment(\.renderMode, true)
+            .environment(\.renderClock, clock)
+            .environment(\.renderLine, line)
+        let r = ImageRenderer(content: content)
+        r.scale = scale
+        r.proposedSize = ProposedViewSize(width: width, height: height)
+        if let img = r.nsImage, let tiff = img.tiffRepresentation, let rep = NSBitmapImageRep(data: tiff),
+           let png = rep.representation(using: .png, properties: [:]) {
+            try? png.write(to: url)
+        }
+    }
+
+    /// The shadow studio mid-take as a loop of frames, for the README: a voice swells the halo
+    /// and raises waves on the water, and the subtitles move along with it. The halo turns once
+    /// in 15 s and every rhythm of the voice divides 15 s, so the loop closes on itself; only
+    /// the clock and the subtitles start over. Frames go to `<name>-light/0000.png` and
+    /// `<name>-dark/`; render.sh joins them into an animated WebP.
+    static func shadowLoop(name: String, stage: StageModel, recorder: Recorder, state: AppState, into dir: URL) async {
+        guard await shadowStage(stage: stage, recorder: recorder, state: state) != nil,
+              let sentences = stage.practice?.reference?.sentences, !sentences.isEmpty else {
+            log("render: \(name) skipped, no shadow clip today")
+            return
+        }
+        let fps = 12.0, seconds = 15.0, phrase = 2.5, wordsPerSecond = 2.5
+        let first = min(stage.activeSentence, sentences.count - 1)
+        let startElapsed = recorder.elapsed
+
+        // Phrases of about two seconds with a breath between them, each a little louder or
+        // softer, and syllables on top.
+        let loudness = [0.85, 1.0, 0.75, 0.95, 0.8, 1.0]
+        func rms(_ t: Double) -> Float {
+            let u = (t.truncatingRemainder(dividingBy: seconds) + seconds).truncatingRemainder(dividingBy: seconds)
+            let voice = min(1, max(0, (0.6 - cos(2 * .pi * u / phrase)) / 1.6))
+            let syllables = 0.65 + 0.35 * sin(2 * .pi * 3.6 * u)
+            return Float(0.012 + 0.085 * loudness[Int(u / phrase) % loudness.count] * voice * syllables)
+        }
+
+        // When each later line becomes the active one: read at about 2.5 words a second from
+        // partway into the first line, each change falling in a breath between phrases.
+        func words(_ i: Int) -> Double { Double(sentences[i].text.split(separator: " ").count) }
+        var changes: [Double] = []
+        var reached = 0.6 * words(first) / wordsPerSecond
+        var next = first + 1
+        while next < sentences.count {
+            var at = max(phrase, (reached / phrase).rounded() * phrase)
+            if let last = changes.last, at <= last { at = last + phrase }
+            if at >= seconds { break }
+            changes.append(at)
+            reached = at + words(next) / wordsPerSecond
+            next += 1
+        }
+        func ease(_ x: Double) -> Double { let c = min(1, max(0, x)); return c * c * (3 - 2 * c) }
+
+        let origin = Date(timeIntervalSinceReferenceDate: 0)
+        let pace = [2.0, 3, 5, 4, 1, 0, 2, 4, 6, 5, 3, 1, 0, 2, 3]
+        for scheme in [ColorScheme.light, .dark] {
+            let out = dir.appendingPathComponent("\(name)-\(scheme == .light ? "light" : "dark")")
+            try? FileManager.default.createDirectory(at: out, withIntermediateDirectories: true)
+            log("render: \(name) \(scheme), \(Int(fps * seconds)) frames")
+            // The meter runs one loop ahead of the first frame, so the last frame leads into it.
+            recorder.meter.reset()
+            var metered = -seconds
+            for i in 0..<Int(fps * seconds) {
+                let t = Double(i) / fps
+                while metered <= t { recorder.meter.push(rms(metered)); metered += 0.02 }
+                let now = origin.addingTimeInterval(t)
+                recorder.elapsed = startElapsed + t
+                recorder.liveWPM = 150 + pace[Int(t) % pace.count]
+                // The water stays where it is, so it doesn't jump back when the loop starts over.
+                recorder.pretendStarted(at: now.addingTimeInterval(-startElapsed))
+                stage.activeSentence = first + changes.filter { $0 <= t }.count
+                let line = Double(first) + changes.reduce(0) { $0 + ease((t - $1) / 0.6) }
+                draw(AnyView(window(state: state, space: .shadow, height: 840)), width: 1200, height: 840,
+                     scheme: scheme, scale: 4.0 / 3, clock: now, line: line,
+                     state: state, recorder: recorder, stage: stage,
+                     to: out.appendingPathComponent(String(format: "%04d.png", i)))
+            }
+        }
+        recorder.meter.reset()
+        recorder.elapsed = startElapsed
+        stage.activeSentence = first
     }
 
     static func log(_ s: String) {
@@ -170,6 +255,7 @@ enum RenderHarness {
         stage.activeSentence = 3
         stage.phase = .recording
         recorder.elapsed = 31
+        recorder.pretendStarted(at: Date().addingTimeInterval(-31))
         recorder.liveWPM = 152
         state.studio = .shadow
         state.space = .shadow

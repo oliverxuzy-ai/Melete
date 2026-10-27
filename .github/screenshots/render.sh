@@ -6,13 +6,16 @@
 #
 #   .github/screenshots/render.sh                        writes .github/assets/screenshots/{en,zh}/
 #   PAGES=window-home,history .github/screenshots/render.sh   other pages (names in RenderHarness.swift)
+#
+# window-shadow-live is a moving picture: 180 frames per look, joined into an animated WebP
+# with img2webp (brew install webp).
 set -eu
 cd "$(dirname "$0")/../.."
 
 OUT=.github/assets/screenshots
-# The README set: Overview, Shadowing mid-take, Retell before speaking, and the critique
-# card after today's impromptu take (window-verdict-min).
-PAGES=${PAGES:-window-home,window-shadow-min,window-retell-min,window-verdict-min}
+# The README set: Shadowing mid-take as a moving picture, then the Overview, Retell before
+# speaking, and the critique card after today's impromptu take (window-verdict-min).
+PAGES=${PAGES:-window-shadow-live,window-home-min,window-retell-min,window-verdict-min}
 PORT=${SCREENSHOT_PORT:-8790}
 APP=dist/Melete.app/Contents/MacOS/SpeechPractice
 PY=.venv/bin/python
@@ -22,6 +25,13 @@ if [ ! -x "$APP" ] || [ ! -x "$PY" ]; then
   echo "Build the app first: ./build_native.sh" >&2
   exit 1
 fi
+case ",$PAGES," in
+  *,window-shadow-live,*)
+    if ! command -v img2webp >/dev/null 2>&1; then
+      echo "window-shadow-live needs img2webp: brew install webp" >&2
+      exit 1
+    fi ;;
+esac
 
 server=""
 app=""
@@ -42,8 +52,8 @@ render() {
   app=$!
   waited=0
   while kill -0 "$app" 2>/dev/null; do
-    if [ "$waited" -ge 300 ]; then
-      echo "The app did not finish within 300 s. Its log:" >&2
+    if [ "$waited" -ge 900 ]; then
+      echo "The app did not finish within 900 s. Its log:" >&2
       cat "$WORK/app-$lang.log" >&2
       echo "What it asked the server:" >&2
       tail -n 40 "$WORK/server-$lang.log" >&2
@@ -103,6 +113,13 @@ for lang in en zh; do
       *) size=1040 ;;
     esac
     sips -Z "$size" "$f" --out "$OUT/$lang/$name" >/dev/null
+  done
+  # Moving pictures: a folder of frames each, 12 a second (83 ms), drawn at the size shown.
+  for frames in "$WORK/png-$lang"/*/; do
+    [ -d "$frames" ] || continue
+    name=$(basename "$frames")
+    # shellcheck disable=SC2046 # one argument per frame, in order
+    img2webp -loop 0 -mixed -q 82 -m 6 -d 83 $(ls "$frames"*.png) -o "$OUT/$lang/$name.webp" >/dev/null
   done
 done
 

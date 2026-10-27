@@ -19,8 +19,8 @@ Recordings, transcripts and stats never leave your Mac.
 [![MIT license](https://img.shields.io/github/license/oliverxuzy-ai/Melete?style=flat-square&color=1A1916)](LICENSE)
 
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset=".github/assets/screenshots/en/window-home-dark.png">
-  <img src=".github/assets/screenshots/en/window-home-light.png" width="880" alt="Melete's Overview: this week's laurel in the middle, pace and filler-word trends on the left, minutes per day and the streak on the right">
+  <source media="(prefers-color-scheme: dark)" srcset=".github/assets/screenshots/en/window-shadow-live-dark.webp">
+  <img src=".github/assets/screenshots/en/window-shadow-live-light.webp" width="880" alt="Shadowing a clip in Melete: as you speak, waves rise on the water clock, its halo swells and turns, and the subtitles move along with you">
 </picture>
 
 </div>
@@ -43,8 +43,8 @@ So Melete opens on today's next exercise. Press <kbd>Return</kbd>, a water clock
 
 <p align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset=".github/assets/screenshots/en/window-shadow-min-dark.png">
-    <img src=".github/assets/screenshots/en/window-shadow-min-light.png" width="32%" alt="Shadow: speaking along with today's story clip">
+    <source media="(prefers-color-scheme: dark)" srcset=".github/assets/screenshots/en/window-home-min-dark.png">
+    <img src=".github/assets/screenshots/en/window-home-min-light.png" width="32%" alt="The Overview: this week's laurel in the middle, your trends on the left, your rhythm and the next talk on the right">
   </picture>
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset=".github/assets/screenshots/en/window-retell-min-dark.png">
@@ -55,7 +55,7 @@ So Melete opens on today's next exercise. Press <kbd>Return</kbd>, a water clock
     <img src=".github/assets/screenshots/en/window-verdict-min-light.png" width="32%" alt="The critique card after an impromptu take: a one-line verdict, four numbers and two things to try">
   </picture>
   <br>
-  <sub>Shadowing a clip · Retelling it in your own words · The note you get after every take</sub>
+  <sub>The Overview · Retelling a clip in your own words · The note you get after every take</sub>
 </p>
 
 ### Feedback that tells you one thing
@@ -243,7 +243,7 @@ To jump to a specific version, raise `CFBundleShortVersionString` in `native/Res
 
 ### Screenshots
 
-The app draws the screenshots in this README itself, from three weeks of made-up practice (`.github/screenshots/seed.py`) rather than anyone's recordings. After a UI change, run **Actions → Screenshots → Run workflow** on your branch: it draws English and Chinese, light and dark, and commits the images to that branch. On a Mac with the app built, `.github/screenshots/render.sh` does the same locally, with its own data folder and port, so your history is not touched.
+The app draws the screenshots in this README itself, from three weeks of made-up practice (`.github/screenshots/seed.py`) rather than anyone's recordings. After a UI change, run **Actions → Screenshots → Run workflow** on your branch: it draws English and Chinese, light and dark, and commits the images to that branch. The moving picture at the top is 15 seconds of frames drawn the same way and joined into an animated WebP. On a Mac with the app built, `.github/screenshots/render.sh` does the same locally (it needs `brew install webp`), with its own data folder and port, so your history is not touched.
 
 ## Design
 

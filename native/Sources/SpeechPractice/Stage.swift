@@ -595,23 +595,69 @@ struct ReferenceLines: View {
     /// A tapped line, when lines can be tapped (see `StageModel.jump`).
     var onTap: ((Int) -> Void)?
     var tapHelp = ""
+    @Environment(\.renderMode) private var renderMode
+    @Environment(\.renderLine) private var renderLine
 
     var body: some View {
-        ScrollViewReader { proxy in
-            ScrollView(showsIndicators: false) {
-                VStack(alignment: .leading, spacing: 4) {
-                    ForEach(sentences) { s in
-                        ReferenceLine(sentence: s, active: active, onTap: onTap, help: tapHelp)
-                            .id(s.i)
-                    }
+        if renderMode {
+            // Offscreen a scroll view draws blank, so the render harness stacks the lines itself,
+            // where scrolling to the active line would put them.
+            CenteredLines(position: renderLine ?? Double(active)) {
+                ForEach(sentences) { s in
+                    ReferenceLine(sentence: s, active: active, onTap: onTap, help: tapHelp)
                 }
-                .padding(.vertical, 120)
             }
             .frame(height: 360)
-            .mask(LinearGradient(stops: [.init(color: .clear, location: 0), .init(color: .black, location: 0.2),
-                                         .init(color: .black, location: 0.8), .init(color: .clear, location: 1)],
-                                 startPoint: .top, endPoint: .bottom))
-            .onChange(of: active) { _, i in withAnimation(Motion.paper) { proxy.scrollTo(i, anchor: .center) } }
+            .clipped()
+            .mask(fade)
+        } else {
+            ScrollViewReader { proxy in
+                ScrollView(showsIndicators: false) {
+                    VStack(alignment: .leading, spacing: 4) {
+                        ForEach(sentences) { s in
+                            ReferenceLine(sentence: s, active: active, onTap: onTap, help: tapHelp)
+                                .id(s.i)
+                        }
+                    }
+                    .padding(.vertical, 120)
+                }
+                .frame(height: 360)
+                .mask(fade)
+                .onChange(of: active) { _, i in withAnimation(Motion.paper) { proxy.scrollTo(i, anchor: .center) } }
+            }
+        }
+    }
+
+    private var fade: LinearGradient {
+        LinearGradient(stops: [.init(color: .clear, location: 0), .init(color: .black, location: 0.2),
+                               .init(color: .black, location: 0.8), .init(color: .clear, location: 1)],
+                       startPoint: .top, endPoint: .bottom)
+    }
+}
+
+/// Stacks lines so that `position`, a line index (between two while moving), sits in the
+/// middle, as scrolling to it with a centre anchor does.
+private struct CenteredLines: Layout {
+    var position: Double
+    var spacing: CGFloat = 4
+
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+        proposal.replacingUnspecifiedDimensions(by: CGSize(width: 300, height: 360))
+    }
+
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+        guard !subviews.isEmpty else { return }
+        let heights = subviews.map { $0.sizeThatFits(ProposedViewSize(width: bounds.width, height: nil)).height }
+        var tops: [CGFloat] = []
+        var y: CGFloat = 0
+        for h in heights { tops.append(y); y += h + spacing }
+        let lo = min(max(Int(position.rounded(.down)), 0), subviews.count - 1)
+        let hi = min(lo + 1, subviews.count - 1)
+        let f = CGFloat(min(max(position - Double(lo), 0), 1))
+        let middle = (tops[lo] + heights[lo] / 2) * (1 - f) + (tops[hi] + heights[hi] / 2) * f
+        for (i, line) in subviews.enumerated() {
+            line.place(at: CGPoint(x: bounds.minX, y: bounds.midY - middle + tops[i]), anchor: .topLeading,
+                       proposal: ProposedViewSize(width: bounds.width, height: heights[i]))
         }
     }
 }
