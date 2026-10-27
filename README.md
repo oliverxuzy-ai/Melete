@@ -6,7 +6,7 @@
 
 **A daily speaking studio for your Mac.**<br>
 Shadow great speakers, talk through your own topics, and get one clear note on what to fix next.<br>
-Recordings, transcripts and stats never leave your Mac.
+Recordings, transcripts and stats stay on your Mac, unless you turn on listening notes.
 
 [**Download for macOS**](https://github.com/oliverxuzy-ai/Melete/releases/latest/download/Melete.dmg) · [Features](#features) · [How it works](#how-it-works) · [Design](docs/DESIGN.md) · [简体中文](README.zh-CN.md)
 
@@ -50,6 +50,8 @@ So Melete opens on today's next exercise. Press <kbd>Return</kbd>, a water clock
 
 - **Local transcription** with [faster-whisper](https://github.com/SYSTRAN/faster-whisper), in English or Mandarin.
 - **A critique card** after every take: a one-line verdict, up to four numbers this training block cares about, and at most three things to try next time. The full analysis is one click away.
+- **Intonation, sentence by sentence.** Pitch and loudness are measured every 10 ms and cut into sentences with Whisper's word timings: how each sentence ends (falls, rises, stays level, or fades out), which word you stressed, and stretches where your pitch hardly moves. When you shadow, your tune is compared with the speaker's sentence by sentence, in semitones from each voice's own median.
+- **Listening notes (optional).** With an OpenRouter key, Gemini listens to the take and says how it sounds: tone, confidence, energy, a note per sentence and one thing to try. It gets Melete's measurements along with the audio and is told to take them as given, since audio models are poor at measuring pitch and pace themselves.
 - **Your own targets.** Pace targets start from your recent median and rise each week of a pace block. Loudness is compared only with your last five takes, because decibels depend on the mic and the distance.
 - **Retelling is scored by meaning**, not word for word: each key point is marked covered, partly covered, or missed.
 
@@ -69,7 +71,7 @@ So Melete opens on today's next exercise. Press <kbd>Return</kbd>, a water clock
 
 ### Private by design
 
-Audio, transcripts and statistics are stored only in `~/Library/Application Support/SpeechPractice/`. Your recordings are never uploaded. Melete goes online only to download the speech models once, to fetch daily clip audio with yt-dlp, and, if you turn them on, to send phone reminders through ntfy or ask Claude to pick a clip.
+Audio, transcripts and statistics are stored only in `~/Library/Application Support/SpeechPractice/`. Your recordings are not uploaded unless you turn on listening notes; then each take is sent through OpenRouter to the model you chose, routed only to providers that neither store nor train on requests. Otherwise Melete goes online only to download the speech models once, to fetch daily clip audio with yt-dlp, and, if you turn them on, to send phone reminders through ntfy or ask Claude to pick a clip.
 
 ## Install
 
@@ -116,6 +118,10 @@ Audio, transcripts and statistics are stored only in `~/Library/Application Supp
 
 Add an Anthropic API key in **Settings → Claude**. Once a day, Claude picks the best clip from the candidates the local rules found, and writes a title plus two notes on where the speaker pauses and what they stress. The default model is Claude Opus 5.5; you can switch to Sonnet 5.5 or Haiku 5.5. Without a key, or if a request fails, Melete falls back to the local rules. The key is stored only in `settings.json` on your Mac, readable only by you.
 
+### Optional: listening notes
+
+Add an OpenRouter API key in **Settings → Listening**. After each take, once the local analysis is shown, the recording goes to Gemini 3.8 Flash (or the cheaper 3.5 Flash-Lite) with the numbered sentences and the measured pace, endings and stress. Usually within half a minute, its notes fill in under the verdict and in the full analysis: the overall tone, confidence and energy, a note per sentence, one tip. A two-minute take costs about one cent. The notes are never scored, and if a request fails the local analysis stands as it is. Takes over ten minutes are not sent.
+
 ## How it works
 
 ```mermaid
@@ -131,6 +137,7 @@ flowchart LR
   end
   server -. "daily clips (optional)" .-> yt["YouTube<br/>via yt-dlp"]
   server -. "clip picking (optional)" .-> claude["Claude API"]
+  server -. "listening notes (optional)" .-> gemini["OpenRouter<br/>Gemini"]
 ```
 
 The native app bundles a Python analysis server, so there is nothing else to install or run.

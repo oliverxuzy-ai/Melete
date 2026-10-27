@@ -6,7 +6,7 @@ binaries = (collect_dynamic_libs("ctranslate2") + collect_dynamic_libs("av")
             + collect_dynamic_libs("onnxruntime") + collect_dynamic_libs("tokenizers"))
 hiddenimports = (collect_submodules("faster_whisper")
                  + ["uvicorn.logging", "uvicorn.loops.auto", "uvicorn.protocols.http.auto",
-                    "uvicorn.protocols.websockets.auto", "uvicorn.lifespan.on", "multipart", "coach", "daily", "i18n"])
+                    "uvicorn.protocols.websockets.auto", "uvicorn.lifespan.on", "multipart", "coach", "daily", "i18n", "listen", "prosody"])
 try:   # optional: the Claude clip picker imports it lazily
     hiddenimports += collect_submodules("anthropic")
 except Exception:

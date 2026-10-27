@@ -2,8 +2,8 @@ import SwiftUI
 import AppKit
 
 /// Settings, as a tray in the same materials as the rest of Melete: one section at a time
-/// (how practice starts, reminders, where clips come from, the training cycle, Claude, data,
-/// the interface language),
+/// (how practice starts, reminders, where clips come from, the training cycle, Claude, the
+/// listening notes, data, the interface language),
 /// chosen by the chips at the top, so a section fits the frame instead of one long scroll.
 struct SettingsPanel: View {
     @Environment(AppState.self) private var state
@@ -11,7 +11,7 @@ struct SettingsPanel: View {
 
     private var sections: [(String, String)] {
         [("start", L("开始", "Start")), ("remind", L("提醒", "Reminders")), ("clips", L("片段", "Clips")),
-         ("cycle", L("周期", "Cycle")), ("claude", "Claude"), ("data", L("数据", "Data")),
+         ("cycle", L("周期", "Cycle")), ("claude", "Claude"), ("listen", L("听感", "Listening")), ("data", L("数据", "Data")),
          // Both names, so the way back is readable from either language.
          ("language", isEnglishUI ? "Language · 语言" : "语言 · Language")]
     }
@@ -29,6 +29,7 @@ struct SettingsPanel: View {
                     case "clips": ClipSettings()
                     case "cycle": CycleSettings()
                     case "claude": ClaudeSettings()
+                    case "listen": ListenSettingsView()
                     case "data": DataSettings()
                     case "language": LanguageSettings()
                     default: StartSettings()
@@ -365,6 +366,53 @@ struct ClaudeSettings: View {
     }
 }
 
+/// Listening notes: a cloud audio model, reached through OpenRouter, hears each take and says
+/// how it sounds. Off until a key is saved; the local analysis never depends on it.
+struct ListenSettingsView: View {
+    @Environment(AppState.self) private var state
+    @State private var apiKey = ""
+
+    private let models = ["google/gemini-3.8-flash", "google/gemini-3.5-flash-lite"]
+
+    var body: some View {
+        SettingsSection(title: L("听感（可选）", "Listening notes (optional)"),
+                        note: L("语速、音高、停顿和重读都在本机算。打开以后，每段录音还会经 OpenRouter 发给 Gemini，听它的语气、自信和投入程度，逐句写一句点评。一段 2 分钟的录音约 1 美分。只发给不保存、不拿来训练的服务商。Key 只存在本机设置文件里。",
+                                "Pace, pitch, pauses and stress are measured on this Mac. With this on, each take is also sent through OpenRouter to Gemini, which listens for tone, confidence and engagement and writes a note per sentence. About one cent for a two-minute take. Only providers that neither store nor train on requests are used. The key stays in the settings file on this Mac.")) {
+            if let s = state.settings, let ls = s.listen {
+                SettingRow(title: L("录完以后请 Gemini 听一遍", "Ask Gemini to listen after each take"),
+                           detail: ls.hasKey == true ? L("录音会离开这台 Mac，发给 OpenRouter 和 Google。", "Recordings leave this Mac for OpenRouter and Google.") : L("保存 key 以后才会发送。", "Nothing is sent until a key is saved.")) {
+                    MeleteToggle(isOn: Binding(get: { ls.enabled }, set: { v in
+                        state.settings?.listen?.enabled = v
+                        Task { await state.saveSettings(["listen": ["enabled": v]]) }
+                    }))
+                }
+                SettingRow(title: L("模型", "Model"), detail: L("3.8 Flash 听得更细；3.5 Flash-Lite 更便宜、更快。", "3.8 Flash listens more closely; 3.5 Flash-Lite is cheaper and faster.")) {
+                    ChoiceChips(options: models.contains(ls.model) ? models : models + [ls.model],
+                                selection: Binding(get: { ls.model }, set: { v in
+                                    state.settings?.listen?.model = v
+                                    Task { await state.saveSettings(["listen": ["model": v]]) }
+                                })) { modelName($0) }
+                    .fixedSize()
+                }
+                SettingRow(title: "OpenRouter API key", detail: ls.hasKey == true ? L("已经保存过。留空不改。", "Saved. Leave empty to keep it.") : L("还没有保存。在 openrouter.ai/keys 创建。", "Not saved yet. Create one at openrouter.ai/keys."), divider: false) {
+                    HStack(spacing: 8) {
+                        SecureField(ls.hasKey == true ? L("已保存", "Saved") : "sk-or-", text: $apiKey).fieldBox().frame(width: 200)
+                        Button(L("保存", "Save")) {
+                            Task { await state.saveSettings(["listen": ["openrouter_api_key": apiKey]]); apiKey = "" }
+                        }
+                        .buttonStyle(InkButtonStyle())
+                        .disabled(apiKey.isEmpty)
+                    }
+                }
+            } else if state.settings != nil {
+                Text(L("分析服务太旧，重启 Melete 后再试。", "The analysis service is out of date; restart Melete.")).foregroundStyle(.secondary).padding(18)
+            } else {
+                ProgressView().padding(18)
+            }
+        }
+    }
+}
+
 struct DataSettings: View {
     @Environment(AppState.self) private var state
 
@@ -374,7 +422,7 @@ struct DataSettings: View {
     }
 
     var body: some View {
-        SettingsSection(title: L("数据", "Data"), note: L("录音、分析和片段都存在这台 Mac 上。", "Recordings, analyses and clips all stay on this Mac.")) {
+        SettingsSection(title: L("数据", "Data"), note: L("录音、分析和片段都存在这台 Mac 上。打开听感以后，录音会另外发一份给 Gemini。", "Recordings, analyses and clips all stay on this Mac. With listening notes on, each recording is also sent to Gemini.")) {
             if let c = state.config {
                 ForEach(c.models.keys.sorted(), id: \.self) { name in
                     SettingRow(title: name == c.model ? L("英文转写：\(name)", "English transcription: \(name)") : L("中文转写：\(name)", "Chinese transcription: \(name)"),

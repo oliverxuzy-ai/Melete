@@ -1,7 +1,8 @@
 """Speech analysis for the practice recorder.
 
 Pipeline: decode audio -> transcribe with local Whisper (word timestamps)
--> compute pace, pauses, fillers, hedges, vocabulary and loudness/pitch stats.
+-> compute pace, pauses, fillers, hedges, vocabulary and loudness/pitch stats,
+plus sentence-by-sentence prosody (prosody.py).
 All numbers are heuristics meant for self-tracking, not clinical measurement.
 """
 from __future__ import annotations
@@ -9,6 +10,7 @@ from __future__ import annotations
 import os
 import re
 import threading
+import traceback
 from collections import Counter
 from dataclasses import dataclass, asdict
 
@@ -21,6 +23,8 @@ from faster_whisper import WhisperModel
 # A thread lock is all we need. Setting the attribute first skips the creation.
 tqdm.std.TqdmDefaultWriteLock.mp_lock = None
 from faster_whisper.audio import decode_audio
+
+import prosody
 
 SAMPLE_RATE = 16000
 # One model per language family. The multilingual "small" model is fine for English but
@@ -287,6 +291,14 @@ def analyze(path: str, language: str | None = None) -> dict:
         }
 
     low_conf = sum(1 for w in words if w.prob < 0.5)
+    word_dicts = [asdict(w) for w in words]
+
+    # --- prosody: sentence-level pitch, stress and endings. A failure here never costs the recording.
+    try:
+        pros = prosody.analyze(audio, word_dicts, lang)
+    except Exception:
+        traceback.print_exc()
+        pros = None
 
     return {
         "language": lang,
@@ -329,7 +341,8 @@ def analyze(path: str, language: str | None = None) -> dict:
         },
         "loudness": loud,
         "pitch": estimate_pitch(audio),
+        "prosody": pros,
         "low_confidence_words": low_conf,
         "transcript": transcript,
-        "words": [asdict(w) for w in words],
+        "words": word_dicts,
     }

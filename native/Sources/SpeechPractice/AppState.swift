@@ -506,6 +506,39 @@ final class AppState {
         } catch { report(error) }
     }
 
+    /// The listening notes arrive a little after the local analysis; ask until they have.
+    /// nil when listening is off, still running after four minutes, or the task was cancelled.
+    func awaitListen(_ id: String) async -> ListenNotes? {
+        guard let api else { return nil }
+        for _ in 0..<80 {
+            try? await Task.sleep(for: .seconds(3))
+            if Task.isCancelled { return nil }
+            do {
+                let notes: ListenNotes? = try await api.get("api/sessions/\(id)/listen")
+                guard let notes else { return nil }
+                if !notes.isPending { return notes }
+            } catch {
+                continue
+            }
+        }
+        return nil
+    }
+
+    /// Keeps the open recording's listening notes current while the model is listening.
+    func followListen(_ id: String) async {
+        guard currentSession?.id == id, currentSession?.listen?.isPending == true else { return }
+        if let notes = await awaitListen(id), currentSession?.id == id { currentSession?.listen = notes }
+    }
+
+    /// Asks the model to listen to a recording again (after an error, or with another model).
+    func relisten(_ id: String) async {
+        guard let api else { return }
+        do {
+            let notes: ListenNotes? = try await api.send("POST", "api/sessions/\(id)/listen")
+            if currentSession?.id == id { currentSession?.listen = notes }   // the detail view follows it from here
+        } catch { report(error) }
+    }
+
     func deleteSession() async {
         guard let api, let s = currentSession else { return }
         do {

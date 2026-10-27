@@ -38,6 +38,12 @@ struct SessionDetailView: View {
                 } else if s.practiceId != nil {
                     SectionCard(title: L("要点覆盖", "Key-point coverage")) { Text(L("这个练习还没有原文。填上原文并保存后，这里会显示要点覆盖。", "This practice has no text yet. Add it and save, and coverage shows here.")).foregroundStyle(.secondary) }
                 }
+                if let sh = m.prosody?.shadow { ShadowProsodySection(shadow: sh) }
+                if let p = m.prosody {
+                    ProsodySection(prosody: p, listen: s.listen)
+                } else if let l = s.listen {
+                    SectionCard(title: L("听感", "How it sounds")) { ListenSummary(listen: l) }
+                }
                 HStack(alignment: .top, spacing: 16) {
                     SectionCard(title: L("语速随时间（每 30 秒）", "Pace over time (every 30 s)")) { PaceChart(points: m.paceTimeline, band: paceBand(for: m.language), unit: m.rateUnit) }
                     SectionCard(title: L("用词", "Words")) { WordsSection(metrics: m) }
@@ -87,6 +93,7 @@ struct SessionDetailView: View {
                 }
             }
             .onChange(of: s.id, initial: true) { _, _ in load(s) }
+            .task(id: "\(s.id)|\(s.listen?.status ?? "")") { await state.followListen(s.id) }
             .onDisappear { player.stop() }
         }
     }
