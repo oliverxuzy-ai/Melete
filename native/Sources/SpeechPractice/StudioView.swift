@@ -108,7 +108,7 @@ struct StudioHeader: View {
                     HStack(spacing: 6) {
                         Image(systemName: "circle.fill").font(.system(size: 8)).foregroundStyle(Palette.cinnabar)
                             .symbolEffect(.pulse, options: .repeating)
-                        Text("录音中").font(Typeface.ui(12, .medium)).foregroundStyle(Palette.cinnabar)
+                        Text(L("录音中", "Recording")).font(Typeface.ui(12, .medium)).foregroundStyle(Palette.cinnabar)
                     }
                     .transition(.opacity)
                 } else if let note = stage.notice, mine {
@@ -120,7 +120,7 @@ struct StudioHeader: View {
                     .transition(.opacity)
                 } else if mine, !stage.isActive, let p = stage.practice {
                     // The way into what is on stage: its text, its attempts, editing and deleting.
-                    Button(p.reference != nil ? "原文和记录" : "编辑讲稿，看记录") { Task { await state.openTray(.practice(p.id)) } }
+                    Button(p.reference != nil ? L("原文和记录", "Original and takes") : L("编辑讲稿，看记录", "Edit script, see takes")) { Task { await state.openTray(.practice(p.id)) } }
                         .buttonStyle(InkButtonStyle())
                         .transition(.opacity)
                 }
@@ -167,20 +167,20 @@ struct OrbCaption: View {
         ZStack {
             switch stage.phase {
             case .countdown:
-                Text("准备").font(Typeface.display(26)).foregroundStyle(.white.opacity(0.92)).shadow(radius: 6)
+                Text(L("准备", "Ready")).font(Typeface.display(26)).foregroundStyle(.white.opacity(0.92)).shadow(radius: 6)
             case .listening:
                 VStack(spacing: 8) {
                     Image(systemName: "ear").font(.system(size: 26, weight: .light))
-                    Text(stage.player.playing ? "原文播放中" : "原文已暂停").font(Typeface.display(20))
-                    Button("停止播放") { stage.cancel() }
+                    Text(stage.player.playing ? L("原文播放中", "Original playing") : L("原文已暂停", "Original paused")).font(Typeface.display(20))
+                    Button(L("停止播放", "Stop playback")) { stage.cancel() }
                         .buttonStyle(InkButtonStyle(color: Palette.ink2))
-                        .help("停下原文，回到准备（Esc）")
+                        .help(L("停下原文，回到准备（Esc）", "Stop the original and go back to ready (Esc)"))
                 }
                 .foregroundStyle(Palette.kyanos)
             case .analyzing:
-                Text("正在听你说的").font(Typeface.display(18)).foregroundStyle(Palette.kyanos)
+                Text(L("正在听你说的", "Listening to your take")).font(Typeface.display(18)).foregroundStyle(Palette.kyanos)
             case .queued:
-                Text("已保存").font(Typeface.display(20)).foregroundStyle(Palette.kyanos)
+                Text(L("已保存", "Saved")).font(Typeface.display(20)).foregroundStyle(Palette.kyanos)
             case .ready:
                 Text(stage.readyPrompt)
                     .font(Typeface.display(19)).multilineTextAlignment(.center).lineSpacing(4)
@@ -201,12 +201,14 @@ struct StageLeft: View {
         if let r = stage.practice?.reference, stage.mode == .shadow || stage.phase == .listening {
             ReferenceLines(sentences: r.sentences, active: stage.activeSentence,
                            onTap: stage.canJump ? { stage.jump(to: $0) } : nil,
-                           tapHelp: stage.phase == .recording ? "读到这一句了：字幕从这里接着跟你" : "从这一句开始听原文")
+                           tapHelp: stage.phase == .recording ? L("读到这一句了：字幕从这里接着跟你", "I'm here: the subtitles follow you from this line")
+                                                              : L("从这一句开始听原文", "Play the original from this line"))
         } else if stage.mode == .retell {
             // After listening, the transcript stays away: retelling means your own words.
             VStack(alignment: .leading, spacing: 12) {
-                Text("用自己的话讲一遍").font(Typeface.display(21)).foregroundStyle(Palette.ink)
-                Text("不用逐句复原。先说他的核心观点，再讲他用的一个例子，最后说你怎么看。")
+                Text(L("用自己的话讲一遍", "Say it in your own words")).font(Typeface.display(21)).foregroundStyle(Palette.ink)
+                Text(L("不用逐句复原。先说他的核心观点，再讲他用的一个例子，最后说你怎么看。",
+                       "No need to recall it line by line. Give the speaker's main point, then one example they used, then what you think."))
                     .font(Typeface.italic(15)).foregroundStyle(Palette.ink2).lineSpacing(4)
                     .fixedSize(horizontal: false, vertical: true)
                 if let notes = stage.practice?.notes, !notes.isEmpty {
@@ -242,11 +244,13 @@ struct StageRight: View {
                 LiveLines(sentences: recorder.liveSentences, volatile: recorder.liveVolatile, recording: stage.phase == .recording)
             } else if stage.phase == .recording {
                 if stage.followsVoice {
-                    Text("外放时不放原声，免得录进去。按你自己的速度读，字幕跟着你走；跟丢了就点你读到的那一句。")
+                    Text(L("外放时不放原声，免得录进去。按你自己的速度读，字幕跟着你走；跟丢了就点你读到的那一句。",
+                           "On speakers the original stays silent so it isn't recorded. Read at your own pace and the subtitles follow you; if they lose you, click the line you're on."))
                         .font(Typeface.ui(12)).foregroundStyle(Palette.ink2).lineSpacing(2)
                         .fixedSize(horizontal: false, vertical: true)
                 } else if stage.player.silenced {
-                    Text("外放时不放原声，免得录进去。跟着左边字幕的节奏读。")
+                    Text(L("外放时不放原声，免得录进去。跟着左边字幕的节奏读。",
+                           "On speakers the original stays silent so it isn't recorded. Read along with the subtitles on the left."))
                         .font(Typeface.ui(12)).foregroundStyle(Palette.ink2).lineSpacing(2)
                         .fixedSize(horizontal: false, vertical: true)
                 }
@@ -256,8 +260,10 @@ struct StageRight: View {
                         .fixedSize(horizontal: false, vertical: true)
                 }
                 Text(stage.routeIsPrivate
-                     ? "戴着耳机：录音时原声在耳机里同步播放，你跟着说。"
-                     : "现在是外放：录音时不放原声，字幕跟着你读到哪里往下走。戴耳机可以边听原声边跟。")
+                     ? L("戴着耳机：录音时原声在耳机里同步播放，你跟着说。",
+                         "Headphones on: while you record, the original plays in your ears and you speak along.")
+                     : L("现在是外放：录音时不放原声，字幕跟着你读到哪里往下走。戴耳机可以边听原声边跟。",
+                         "On speakers: the original stays silent while you record and the subtitles move with your reading. With headphones you can hear it as you go."))
                     .font(Typeface.ui(12)).foregroundStyle(Palette.ink3).lineSpacing(2)
                     .fixedSize(horizontal: false, vertical: true)
             }
@@ -296,11 +302,11 @@ struct LivePace: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text("语速").font(Typeface.ui(12, .medium)).foregroundStyle(Palette.ink2)
+            Text(L("语速", "Pace")).font(Typeface.ui(12, .medium)).foregroundStyle(Palette.ink2)
             HStack(alignment: .firstTextBaseline, spacing: 4) {
                 Text("\(Int(live ? recorder.liveWPM : 0))").font(Typeface.display(44)).monospacedDigit()
                     .foregroundStyle(live && band.contains(recorder.liveWPM) ? Palette.malachite : Palette.ink)
-                Text("词/分").font(Typeface.ui(12)).foregroundStyle(Palette.ink2)
+                Text(L("词/分", "wpm")).font(Typeface.ui(12)).foregroundStyle(Palette.ink2)
             }
             PaceGauge(wpm: live ? recorder.liveWPM : nil, band: band, reference: stage.practice?.reference?.metrics.wpm)
             Text(caption).font(Typeface.ui(11)).foregroundStyle(Palette.ink3)
@@ -308,8 +314,8 @@ struct LivePace: View {
     }
 
     private var caption: String {
-        var s = "绿色是本周目标 \(Int(band.lowerBound)) 到 \(Int(band.upperBound))"
-        if let w = stage.practice?.reference?.metrics.wpm { s += "，金色刻度是原声 \(Int(w))" }
+        var s = L("绿色是本周目标 \(Int(band.lowerBound)) 到 \(Int(band.upperBound))", "Green is this week's target, \(Int(band.lowerBound))–\(Int(band.upperBound))")
+        if let w = stage.practice?.reference?.metrics.wpm { s += L("，金色刻度是原声 \(Int(w))", "; the gold tick is the original, \(Int(w))") }
         return s
     }
 }
@@ -351,13 +357,13 @@ struct StageControls: View {
     /// Throws the take away: nothing saved, nothing analysed.
     private var discardButton: some View {
         Button { stage.discard("button") } label: {
-            Label("放弃这段", systemImage: "xmark")
+            Label(L("放弃这段", "Discard take"), systemImage: "xmark")
                 .font(Typeface.ui(13, .medium)).foregroundStyle(Palette.ink2)
                 .padding(.horizontal, 16).padding(.vertical, 10)
                 .contentShape(Capsule())
         }
         .buttonStyle(.plain)
-        .help("不保存，不分析（Esc）")
+        .help(L("不保存，不分析（Esc）", "Not saved, not analyzed (Esc)"))
     }
 
     /// Only ever plays the original: 听原文, then 暂停 and 继续听 while it plays.
@@ -413,7 +419,7 @@ struct StageControls: View {
         .accessibilityHidden(!shown)
         .onGeometryChange(for: CGRect.self) { $0.frame(in: .global) } action: { FrameProbe.mainButton = $0 }
         .keyboardShortcut((stage.phase == .ready || stage.phase == .listening) && state.tray == nil && state.space != .home ? .defaultAction : nil)
-        .help("回车开始，空格开始或停止，Esc 退回或放弃这段")
+        .help(L("回车开始，空格开始或停止，Esc 退回或放弃这段", "Return starts, Space starts or stops, Esc steps back or discards the take"))
     }
 }
 
@@ -439,17 +445,17 @@ struct StudioEmpty: View {
 
     var body: some View {
         VStack(spacing: 14) {
-            Text(space == .shadow ? "今天的片段还在路上" : "还没有要讲的主题")
+            Text(space == .shadow ? L("今天的片段还在路上", "Today's clips are on their way") : L("还没有要讲的主题", "Nothing to talk about yet"))
                 .font(Typeface.display(26)).foregroundStyle(Palette.ink)
             Text(message)
                 .font(Typeface.ui(14)).foregroundStyle(Palette.ink2).multilineTextAlignment(.center)
             HStack(spacing: 12) {
                 if space == .shadow {
-                    Button("贴一个链接") { Task { await state.openTray(.addLink) } }.primaryGlass()
-                    Button("现在就挑") { Task { await state.refreshClips(force: false) } }.buttonStyle(.glass).controlSize(.large)
+                    Button(L("贴一个链接", "Paste a link")) { Task { await state.openTray(.addLink) } }.primaryGlass()
+                    Button(L("现在就挑", "Pick now")) { Task { await state.refreshClips(force: false) } }.buttonStyle(.glass).controlSize(.large)
                 } else {
-                    Button("新讲稿") { Task { await state.openTray(.newTopic) } }.primaryGlass()
-                    Button("加一场") { Task { await state.openTray(.newEvent) } }.buttonStyle(.glass).controlSize(.large)
+                    Button(L("新讲稿", "New script")) { Task { await state.openTray(.newTopic) } }.primaryGlass()
+                    Button(L("加一场", "Add a talk")) { Task { await state.openTray(.newEvent) } }.buttonStyle(.glass).controlSize(.large)
                 }
             }
         }
@@ -457,9 +463,9 @@ struct StudioEmpty: View {
     }
 
     private var message: String {
-        guard space == .shadow else { return "写一份讲稿或要点，或者加一场要讲的会。" }
+        guard space == .shadow else { return L("写一份讲稿或要点，或者加一场要讲的会。", "Write a script or a few points, or add a talk you have coming up.") }
         if let m = state.today?.daily.message, !m.isEmpty { return m }
-        return "每天清晨会从演讲里挑一两段。也可以现在贴一个链接。"
+        return L("每天清晨会从演讲里挑一两段。也可以现在贴一个链接。", "Every morning one or two passages are picked from talks. You can also paste a link now.")
     }
 }
 
@@ -488,7 +494,7 @@ struct ShelfView: View {
         let todays = todayItems
         let todayIDs = Set(todays.compactMap(\.practiceId))
         ForEach(todays) { item in
-            ShelfCard(kind: item.kindLabel, title: item.title, meta: "今天，\(durationLabel(item.seconds))",
+            ShelfCard(kind: item.kindLabel, title: item.title, meta: L("今天，\(durationLabel(item.seconds))", "Today, \(durationLabel(item.seconds))"),
                       done: item.done, selected: stage.item?.id == item.id) {
                 stage.present(item: item, autoStart: false)
             }
@@ -497,9 +503,9 @@ struct ShelfView: View {
         ForEach(state.shadowPractices.filter { !todayIDs.contains($0.id) }
                     .sorted { String(($0.clip?.date ?? $0.lastAt ?? $0.createdAt).prefix(10)) > String(($1.clip?.date ?? $1.lastAt ?? $1.createdAt).prefix(10)) }
                     .prefix(16)) { c in
-            let when = c.isClip ? c.clip?.date.map { relativeDay($0) } : (c.sessionCount > 0 ? "练过 \(c.sessionCount) 遍" : "自己导入")
-            ShelfCard(kind: c.clip?.role == "explain" ? "复述" : "跟读", title: c.title,
-                      meta: [when, c.refDuration.map { durationLabel(Int($0.rounded())) }].compactMap { $0 }.joined(separator: "，"),
+            let when = c.isClip ? c.clip?.date.map { relativeDay($0) } : (c.sessionCount > 0 ? L("练过 \(c.sessionCount) 遍", "Practiced \(plural(c.sessionCount, "time"))") : L("自己导入", "Imported"))
+            ShelfCard(kind: c.clip?.role == "explain" ? L("复述", "Retell") : L("跟读", "Shadow"), title: c.title,
+                      meta: [when, c.refDuration.map { durationLabel(Int($0.rounded())) }].compactMap { $0 }.joined(separator: L("，", ", ")),
                       done: c.sessionCount > 0, selected: stage.item == nil && stage.practice?.id == c.id) {
                 Task {
                     if let p = await state.fetchPractice(c.id) {
@@ -508,20 +514,20 @@ struct ShelfView: View {
                 }
             }
         }
-        AddCard(title: "全部片段", detail: "按天看挑过的片段和听点", symbol: "square.stack") { Task { await state.openTray(.clips) } }
-        AddCard(title: "贴链接", detail: "把一段演讲做成片段", symbol: "link") { Task { await state.openTray(.addLink) } }
+        AddCard(title: L("全部片段", "All clips"), detail: L("按天看挑过的片段和听点", "Every clip picked, by day, with notes"), symbol: "square.stack") { Task { await state.openTray(.clips) } }
+        AddCard(title: L("贴链接", "Paste a link"), detail: L("把一段演讲做成片段", "Turn part of a talk into a clip"), symbol: "link") { Task { await state.openTray(.addLink) } }
     }
 
     @ViewBuilder private var topicCards: some View {
         ForEach(todayItems) { item in
             ShelfCard(kind: item.kindLabel, title: item.kind == "impromptu" ? (item.prompt ?? item.title) : item.title,
-                      meta: "今天，\(item.subtitle)",
+                      meta: L("今天，\(item.subtitle)", "Today, \(item.subtitle)"),
                       done: item.done, selected: stage.item?.id == item.id) {
                 stage.present(item: item, autoStart: false)
             }
         }
         if todayItems.contains(where: { $0.kind == "impromptu" && !$0.done }) {
-            AddCard(title: "换一个题", detail: "同一种练法，换个题目", symbol: "arrow.triangle.2.circlepath") {
+            AddCard(title: L("换一个题", "Another prompt"), detail: L("同一种练法，换个题目", "Same exercise, a different prompt"), symbol: "arrow.triangle.2.circlepath") {
                 Task {
                     await state.shufflePrompt()
                     if let it = state.today?.items.first(where: { $0.kind == "impromptu" }) { stage.present(item: it, autoStart: false) }
@@ -529,7 +535,7 @@ struct ShelfView: View {
             }
         }
         ForEach((state.agenda?.events ?? []).filter { !$0.past && $0.daysLeft > 10 }) { ev in
-            ShelfCard(kind: "议程", title: ev.title, meta: "\(ev.daysLeft) 天后，\(ev.kindLabel)", done: false,
+            ShelfCard(kind: L("议程", "Agenda"), title: ev.title, meta: L("\(ev.daysLeft) 天后，\(ev.kindLabel)", "In \(plural(ev.daysLeft, "day")), \(ev.kindLabel)"), done: false,
                       selected: stage.item == nil && stage.practice?.id == ev.practiceId) {
                 Task {
                     if let pid = ev.practiceId, let p = await state.fetchPractice(pid) { stage.present(practice: p, mode: .free, autoStart: false) }
@@ -537,18 +543,18 @@ struct ShelfView: View {
             }
         }
         ForEach(state.userPractices.filter { $0.kind != "agenda" }) { p in
-            ShelfCard(kind: "讲稿", title: p.title, meta: p.sessionCount > 0 ? "练过 \(p.sessionCount) 遍" : "还没练过",
+            ShelfCard(kind: L("讲稿", "Script"), title: p.title, meta: p.sessionCount > 0 ? L("练过 \(p.sessionCount) 遍", "Practiced \(plural(p.sessionCount, "time"))") : L("还没练过", "Not practiced yet"),
                       done: false, selected: stage.item == nil && stage.practice?.id == p.id) {
                 Task {
                     if let full = await state.fetchPractice(p.id) { stage.present(practice: full, mode: full.reference != nil ? .shadow : .free, autoStart: false) }
                 }
             }
             .contextMenu {
-                Button("编辑讲稿，看记录") { Task { await state.openTray(.practice(p.id)) } }
+                Button(L("编辑讲稿，看记录", "Edit script, see takes")) { Task { await state.openTray(.practice(p.id)) } }
             }
         }
-        AddCard(title: "新讲稿", detail: "写下要点，练到熟") { Task { await state.openTray(.newTopic) } }
-        AddCard(title: "议程", detail: "评审、1:1、面试，倒排备讲", symbol: "calendar") { Task { await state.openTray(.agenda) } }
+        AddCard(title: L("新讲稿", "New script"), detail: L("写下要点，练到熟", "Write the points, practice until they flow")) { Task { await state.openTray(.newTopic) } }
+        AddCard(title: L("议程", "Agenda"), detail: L("评审、1:1、面试，倒排备讲", "Reviews, 1:1s, interviews, prepped backwards"), symbol: "calendar") { Task { await state.openTray(.agenda) } }
     }
 }
 

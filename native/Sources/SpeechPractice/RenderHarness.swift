@@ -181,11 +181,11 @@ enum RenderHarness {
             stage.prompt = item.prompt
             stage.hint = item.detail
             stage.title = item.title
-            stage.eyebrow = "\(item.subtitle)，\(item.kindLabel)"
+            stage.eyebrow = L("\(item.subtitle)，\(item.kindLabel)", "\(item.kindLabel) · \(item.subtitle)")
         } else {
             stage.item = nil
-            stage.title = "随便说一段"
-            stage.eyebrow = "自由讲"
+            stage.title = L("随便说一段", "Say anything")
+            stage.eyebrow = L("自由讲", "Free talk")
             stage.prompt = "Give your team a forty five second update: what shipped, what is blocked, and what you need from them."
         }
         stage.mode = stage.item == nil ? .free : .impromptu
@@ -204,7 +204,7 @@ enum RenderHarness {
     }
 
     static func verdictStage(stage: StageModel, state: AppState) -> some View {
-        stage.eyebrow = "即兴，汇报"
+        stage.eyebrow = L("即兴，汇报", "Impromptu · Update")
         stage.result = state.currentSession
         stage.phase = state.currentSession == nil ? .ready : .result
         state.studio = .topic

@@ -42,6 +42,14 @@ struct SpeechPracticeApp: App {
 
     init() {
         if CommandLine.arguments.contains("--selftest") { SpeechPracticeApp.selftest() }
+        // `--lang en|zh` shows one language for this run without changing the setting.
+        if let i = CommandLine.arguments.firstIndex(of: "--lang"), CommandLine.arguments.count > i + 1,
+           let lang = AppLanguage(rawValue: CommandLine.arguments[i + 1]) {
+            LanguageSetting.shared.current = lang
+        } else {
+            // AppKit's own menus follow the chosen language (read at launch).
+            LanguageSetting.syncSystemMenus(LanguageSetting.shared.current)
+        }
     }
 
     /// `SpeechPractice --selftest` decodes every endpoint against SPEECH_SERVER_URL and exits.
@@ -111,26 +119,26 @@ struct SpeechPracticeApp: App {
         .windowBackgroundDragBehavior(.enabled)
         .commands {
             CommandGroup(replacing: .appSettings) {
-                Button("设置…") { NotificationCenter.default.post(name: .openSettings, object: nil) }
+                Button(L("设置…", "Settings…")) { NotificationCenter.default.post(name: .openSettings, object: nil) }
                     .keyboardShortcut(",", modifiers: .command)
             }
             // One window: its places are spaces and trays, so ⌘N makes a script, not a window.
             CommandGroup(replacing: .newItem) {
-                Button(recorder.isRecording ? "停止录音" : "开始练习") {
+                Button(recorder.isRecording ? L("停止录音", "Stop Recording") : L("开始练习", "Start Practice")) {
                     NotificationCenter.default.post(name: .toggleRecording, object: nil)
                 }
                 .keyboardShortcut("r", modifiers: .command)
-                Button("新讲稿…") { NotificationCenter.default.post(name: .newPractice, object: nil) }
+                Button(L("新讲稿…", "New Script…")) { NotificationCenter.default.post(name: .newPractice, object: nil) }
                     .keyboardShortcut("n", modifiers: .command)
             }
-            CommandMenu("前往") {
+            CommandMenu(L("前往", "Go")) {
                 ForEach(Array(Space.allCases.enumerated()), id: \.element) { i, s in
                     Button(s.label) { state.closeTray(); state.go(s) }
                         .keyboardShortcut(KeyEquivalent(Character("\(i + 1)")), modifiers: .command)
                         .disabled(stage.isActive)
                 }
                 Divider()
-                Button("全部记录") { Task { await state.openTray(.history) } }
+                Button(L("全部记录", "All Takes")) { Task { await state.openTray(.history) } }
                     .keyboardShortcut("4", modifiers: .command)
                     .disabled(stage.isActive)
             }
@@ -151,6 +159,8 @@ struct SpeechPracticeApp: App {
     @MainActor private func launch() async {
         let harnesses = ["--render", "--freezeprobe", "--listenprobe", "--shadowprobe", "--followprobe", "--clickprobe", "--pointerprobe", "--perf", "--e2e"]
         if harnesses.contains(where: CommandLine.arguments.contains) {
+            // The checks compare against the Chinese labels; `--lang en` renders the English ones.
+            if !CommandLine.arguments.contains("--lang") { LanguageSetting.shared.current = .zh }
             guard !E2E.started else { return }
             E2E.started = true
             E2E.stageRef = stage

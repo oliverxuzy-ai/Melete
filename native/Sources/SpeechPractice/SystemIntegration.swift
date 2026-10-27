@@ -15,8 +15,8 @@ final class Reminders: NSObject, UNUserNotificationCenterDelegate {
 
     func setup() {
         center.delegate = self
-        let start = UNNotificationAction(identifier: "start", title: "开始练习", options: [.foreground])
-        let later = UNNotificationAction(identifier: "later", title: "一小时后提醒", options: [])
+        let start = UNNotificationAction(identifier: "start", title: L("开始练习", "Start practice"), options: [.foreground])
+        let later = UNNotificationAction(identifier: "later", title: L("一小时后提醒", "Remind me in an hour"), options: [])
         center.setNotificationCategories([UNNotificationCategory(identifier: "practice", actions: [start, later], intentIdentifiers: [], options: [])])
     }
 
@@ -54,8 +54,8 @@ final class Reminders: NSObject, UNUserNotificationCenterDelegate {
 
     private func content() -> UNMutableNotificationContent {
         let c = UNMutableNotificationContent()
-        c.title = "到点练一段了"
-        c.body = "今天的片段和题目已经备好。点开就开始，三秒后自动录音。"
+        c.title = L("到点练一段了", "Time for a short practice")
+        c.body = L("今天的片段和题目已经备好。点开就开始，三秒后自动录音。", "Today's clip and prompt are ready. Open it to begin; recording starts after three seconds.")
         c.sound = .default
         c.categoryIdentifier = "practice"
         return c
@@ -70,8 +70,8 @@ final class Reminders: NSObject, UNUserNotificationCenterDelegate {
         await MainActor.run {
             if action == "later" {
                 let c = UNMutableNotificationContent()
-                c.title = "说好的一小时到了"
-                c.body = "录一段一分钟的就算数。"
+                c.title = L("说好的一小时到了", "The hour is up")
+                c.body = L("录一段一分钟的就算数。", "One minute of recording counts.")
                 c.sound = .default
                 c.categoryIdentifier = "practice"
                 UNUserNotificationCenter.current().add(UNNotificationRequest(identifier: "melete.later", content: c,
@@ -137,8 +137,8 @@ struct MenuBarContent: View {
                 HStack(alignment: .center, spacing: 12) {
                     LaurelWreath(days: t.week.laurel, target: t.week.target, size: 58, showCount: false)
                     VStack(alignment: .leading, spacing: 2) {
-                        Text(chineseDate(t.date)).font(Typeface.display(18))
-                        Text("本周 \(t.week.done) / \(t.week.target) 天，\(t.block.name)").font(Typeface.ui(12)).foregroundStyle(Palette.ink2)
+                        Text(longDate(t.date)).font(Typeface.display(18))
+                        Text(L("本周 \(t.week.done) / \(t.week.target) 天，\(t.block.name)", "This week \(t.week.done) / \(t.week.target) days, \(t.block.name)")).font(Typeface.ui(12)).foregroundStyle(Palette.ink2)
                     }
                 }
                 VStack(alignment: .leading, spacing: 6) {
@@ -151,20 +151,20 @@ struct MenuBarContent: View {
                     }
                 }
             } else {
-                Text("分析服务启动中").font(Typeface.ui(12)).foregroundStyle(Palette.ink2)
+                Text(L("分析服务启动中", "Starting the analysis service")).font(Typeface.ui(12)).foregroundStyle(Palette.ink2)
             }
             Button {
                 state.openMain = state.openMain ?? { openWindow(id: "main") }
                 state.requestStart()
             } label: {
-                Label("开始今日练习", systemImage: "mic.fill").frame(maxWidth: .infinity)
+                Label(L("开始今日练习", "Start today's practice"), systemImage: "mic.fill").frame(maxWidth: .infinity)
             }
             .primaryGlass()
             HStack {
-                Button("打开 Melete") { openMain() }.buttonStyle(InkButtonStyle())
+                Button(L("打开 Melete", "Open Melete")) { openMain() }.buttonStyle(InkButtonStyle())
                 Spacer()
                 Text("⌃⌥R").font(Typeface.ui(11)).foregroundStyle(Palette.ink3)
-                Button("退出") { NSApp.terminate(nil) }.buttonStyle(InkButtonStyle(color: Palette.ink2))
+                Button(L("退出", "Quit")) { NSApp.terminate(nil) }.buttonStyle(InkButtonStyle(color: Palette.ink2))
             }
         }
         .padding(16)

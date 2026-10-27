@@ -18,7 +18,7 @@ from datetime import datetime
 from pathlib import Path
 
 import uvicorn
-from fastapi import FastAPI, File, Form, HTTPException, UploadFile
+from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
@@ -26,8 +26,10 @@ import analysis
 import coach
 import coverage
 import daily
+import i18n
 import paths
 import shadow
+from i18n import t
 
 paths.ensure_dirs()
 DATA = paths.SESSIONS_DIR
@@ -36,6 +38,9 @@ PRACTICES = paths.PRACTICES_DIR
 
 @asynccontextmanager
 async def lifespan(_app):
+    # Text written outside a request (the morning clips, the evening notification) uses the
+    # language the app asked for last.
+    i18n.set_default(coach.load_settings()["ui"].get("language"))
     # Warm the English model so the first recording is not slow. The Chinese model
     # (about 1.6 GB) loads the first time a Chinese recording comes in.
     threading.Thread(target=lambda: analysis.get_model(analysis.MODELS["default"]), daemon=True).start()
@@ -45,6 +50,19 @@ async def lifespan(_app):
 
 
 app = FastAPI(title="Speech Practice Recorder", lifespan=lifespan)
+
+
+@app.middleware("http")
+async def interface_language(request: Request, call_next):
+    """The app names its interface language on every request; plans, feedback and recaps follow it."""
+    code = request.headers.get("x-melete-lang")
+    if i18n.set_default(code):
+        coach.update_settings({"ui": {"language": code}})
+    token = i18n.use_for_request(code)
+    try:
+        return await call_next(request)
+    finally:
+        i18n.reset(token)
 
 SUMMARY_KEYS = ["id", "created_at", "title", "scenario", "language", "duration_sec",
                 "word_count", "wpm", "articulation_wpm", "self_rating", "practice_id", "drill"]
@@ -232,8 +250,10 @@ def create_session(audio: UploadFile = File(...), language: str = Form("en"),
     # record and out of today's plan, and say what to check.
     if metrics["duration_sec"] < 1.5 or metrics["word_count"] == 0:
         shutil.rmtree(folder, ignore_errors=True)
-        raise HTTPException(422, f"这段录音（{metrics['duration_sec']:.1f} 秒）里没有听到说话的声音，没有保存。"
-                                 "看看 系统设置 > 声音 > 输入 选的是哪个麦克风，以及它的音量。")
+        raise HTTPException(422, t(f"这段录音（{metrics['duration_sec']:.1f} 秒）里没有听到说话的声音，没有保存。"
+                                   "看看 系统设置 > 声音 > 输入 选的是哪个麦克风，以及它的音量。",
+                                   f"No speech was heard in this recording ({metrics['duration_sec']:.1f} s), so it wasn't saved. "
+                                   "Check which microphone is selected in System Settings > Sound > Input, and its level."))
     try:
         drill_info = json.loads(drill) if drill else None
     except ValueError:
@@ -241,7 +261,7 @@ def create_session(audio: UploadFile = File(...), language: str = Form("en"),
     session = {
         "id": sid,
         "created_at": now(),
-        "title": title or datetime.now().strftime("%m-%d %H:%M 练习"),
+        "title": title or datetime.now().strftime(t("%m-%d %H:%M 练习", "%m-%d %H:%M Practice")),
         "scenario": scenario,
         "notes": "",
         "self_rating": None,
@@ -363,7 +383,7 @@ def create_practice(body: dict):
         "id": new_id(),
         "created_at": now(),
         "updated_at": now(),
-        "title": (body.get("title") or "").strip() or datetime.now().strftime("%m-%d 新练习"),
+        "title": (body.get("title") or "").strip() or datetime.now().strftime(t("%m-%d 新练习", "%m-%d New practice")),
         "script": body.get("script") or "",
         "scenario": body.get("scenario") or "",
         "notes": body.get("notes") or "",
@@ -565,7 +585,7 @@ def insights(days: int = 371):
     per_practice: dict[str | None, dict] = {}
 
     def prac(pid):
-        return per_practice.setdefault(pid, {"practice_id": pid, "title": practices.get(pid, {}).get("title", "未分组") if pid else "未分组",
+        return per_practice.setdefault(pid, {"practice_id": pid, "title": practices.get(pid, {}).get("title", t("未分组", "Ungrouped")) if pid else t("未分组", "Ungrouped"),
                                              "record_count": 0, "record_sec": 0.0, "listen_ref_sec": 0.0,
                                              "listen_ref_media_sec": 0.0, "listen_self_sec": 0.0, "reference_sec": None})
 
@@ -643,6 +663,7 @@ def insights(days: int = 371):
 # ---------- API: today, coaching, daily clips, agenda, recap ----------
 
 WEEKDAYS = ["星期一", "星期二", "星期三", "星期四", "星期五", "星期六", "星期日"]
+WEEKDAYS_EN = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
 
 
 def clip_card(p: dict) -> dict:
@@ -691,7 +712,7 @@ def today_payload(d=None) -> dict:
         dstate = "waiting"
     return {
         "date": d.isoformat(),
-        "weekday": WEEKDAYS[d.weekday()],
+        "weekday": (WEEKDAYS_EN if i18n.is_en() else WEEKDAYS)[d.weekday()],
         "block": {k: block[k] for k in ("key", "greek", "name", "why", "tip", "week", "weeks", "cycle_week", "focus", "pinned")},
         "baseline": base,
         "targets": tg,
@@ -708,8 +729,9 @@ def today_payload(d=None) -> dict:
 def plan_summary() -> tuple[str, str]:
     t = today_payload()
     lines = [f"{i + 1}. {it['title']}" for i, it in enumerate(t["items"])]
-    title = f"今天练 {len(t['items'])} 项 · {t['block']['name']}"
-    return title, "\n".join(lines) or "打开 Melete，录一段一分钟的即兴。"
+    n = len(t["items"])
+    title = i18n.t(f"今天练 {n} 项 · {t['block']['name']}", f"Today: {n} item{'s' if n != 1 else ''} · {t['block']['name']}")
+    return title, "\n".join(lines) or i18n.t("打开 Melete，录一段一分钟的即兴。", "Open Melete and record a one-minute impromptu talk.")
 
 
 @app.get("/api/today")
@@ -735,7 +757,7 @@ def week_commit():
 def get_settings():
     out = coach.public_settings(coach.load_settings())
     out["tools"] = daily.tools_report()
-    out["blocks"] = [{k: b[k] for k in ("key", "greek", "name", "weeks", "why")} for b in coach.BLOCKS]
+    out["blocks"] = [{k: b[k] for k in ("key", "greek", "name", "weeks", "why")} for b in coach.blocks()]
     return out
 
 
@@ -796,7 +818,7 @@ def daily_add(body: dict):
     url = (body or {}).get("url") or ""
     role = (body or {}).get("role") or "story"
     if not url:
-        raise HTTPException(400, "缺少链接")
+        raise HTTPException(400, t("缺少链接", "Missing link"))
 
     def work():
         try:
@@ -813,12 +835,12 @@ def daily_import(body: dict):
     from datetime import date as _date
     path = (body or {}).get("path") or ""
     if not path or not Path(path).exists():
-        raise HTTPException(400, "找不到这个文件")
+        raise HTTPException(400, t("找不到这个文件", "File not found"))
     try:
         pid = daily.import_local(path, body.get("title") or Path(path).stem, body.get("speaker") or "",
                                  body.get("role") or "story", _date.today(), all_sessions(), body.get("url"))
     except Exception as e:
-        raise HTTPException(500, f"没能做成片段：{e}")
+        raise HTTPException(500, t("没能做成片段：", "Couldn't make a clip: ") + str(e))
     return get_practice(pid)
 
 
@@ -840,8 +862,8 @@ SCENARIO_FOR_EVENT = {"review": "presentation", "one_on_one": "meeting", "team":
 @app.get("/api/agenda")
 def agenda():
     practices = {p["id"]: p for p in all_practices()}
-    return {"events": coach.agenda_view(all_sessions(), practices), "templates": coach.TEMPLATES,
-            "kinds": coach.EVENT_KINDS}
+    return {"events": coach.agenda_view(all_sessions(), practices), "templates": coach.templates(),
+            "kinds": coach.event_kinds()}
 
 
 @app.post("/api/agenda")
@@ -849,7 +871,7 @@ def agenda_create(body: dict):
     ev = coach.new_event(body or {})
     p = {"id": new_id(), "created_at": now(), "updated_at": now(), "title": ev["title"],
          "script": ev["notes"], "scenario": SCENARIO_FOR_EVENT.get(ev["kind"], "other"),
-         "notes": f"{ev['date']} · {coach.EVENT_KINDS.get(ev['kind'], '')} · {ev['minutes']} 分钟",
+         "notes": f"{ev['date']} · {coach.event_kinds().get(ev['kind'], '')} · {ev['minutes']} " + t("分钟", "min"),
          "kind": "agenda", "agenda_id": ev["id"]}
     save_practice(p)
     ev["practice_id"] = p["id"]

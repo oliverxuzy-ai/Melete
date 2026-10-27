@@ -16,7 +16,9 @@ import statistics
 import uuid
 from datetime import date, datetime, timedelta
 
+import i18n
 import paths
+from i18n import t
 
 SETTINGS_FILE = paths.DATA_DIR / "settings.json"
 AGENDA_FILE = paths.DATA_DIR / "agenda.json"
@@ -38,6 +40,9 @@ DEFAULT_SETTINGS = {
         "week_target_days": 5,
         "block_override": None,     # a block key to stay on, or None to follow the cycle
         "committed_week": None,     # Monday of the week the plan was committed to
+    },
+    "ui": {
+        "language": "zh",           # the app's interface language, so background jobs write in it too
     },
 }
 
@@ -101,25 +106,49 @@ BLOCKS = [
     {"key": "tachos", "greek": "Τάχος", "name": "语速与音量", "weeks": 2,
      "focus": ["wpm", "loudness"],
      "why": "先把两个基本功拉起来：说快一点，大声一点。会议里的发言、汇报和评审，都从这里开始。",
-     "tip": "开口前先想好第一句，后面的边说边想。句尾不要拖。"},
+     "tip": "开口前先想好第一句，后面的边说边想。句尾不要拖。",
+     "name_en": "Pace and volume",
+     "why_en": "First the two basics: speak a little faster and a little louder. Every point you make in a meeting, an update or a review starts here.",
+     "tip_en": "Know your first sentence before you start; work out the rest as you go. Don't trail off at the end of a sentence."},
     {"key": "tonos", "greek": "Τόνος", "name": "语调与停顿", "weeks": 2,
      "focus": ["pitch", "fillers"],
      "why": "语调平，听众就跟不住。这两周练重读和停顿。",
-     "tip": "每句挑一个关键词重读。想停的时候就停，用停顿代替 um 和 like。"},
+     "tip": "每句挑一个关键词重读。想停的时候就停，用停顿代替 um 和 like。",
+     "name_en": "Tone and pauses",
+     "why_en": "A flat voice loses the room. These two weeks work on stress and pauses.",
+     "tip_en": "Stress one key word in every sentence. When you want to stop, stop: a pause instead of um and like."},
     {"key": "mythos", "greek": "Μῦθος", "name": "讲故事", "weeks": 2,
      "focus": ["coverage", "wpm"],
      "why": "让人愿意听下去：开头抛钩子，中间有转折，结尾回到结论。",
-     "tip": "先说结果或冲突，再补背景。一个故事只讲一个转折。"},
+     "tip": "先说结果或冲突，再补背景。一个故事只讲一个转折。",
+     "name_en": "Storytelling",
+     "why_en": "Make people want to keep listening: open with a hook, put a turn in the middle, end back at the point.",
+     "tip_en": "Lead with the result or the conflict, then fill in the background. One turn per story."},
     {"key": "prosopon", "greek": "Πρόσωπον", "name": "看对象换说法", "weeks": 2,
      "focus": ["duration", "wpm"],
      "why": "同一件事，对团队、对业务方、对评审会、对全员会，说法不一样。",
-     "tip": "先想对方最关心什么，再决定第一句。对做决定的人短，对全员慢。"},
+     "tip": "先想对方最关心什么，再决定第一句。对做决定的人短，对全员慢。",
+     "name_en": "Speak to the room",
+     "why_en": "The same news sounds different to the team, to stakeholders, to a review board and to an all-hands.",
+     "tip_en": "Think about what they care about most, then choose your first sentence. Short for decision makers, slower for everyone."},
     {"key": "anapausis", "greek": "Ἀνάπαυσις", "name": "减量周", "weeks": 1,
      "focus": [],
      "why": "像跑步的减量周：只跟读，不加量，让前面几周的练习沉淀下来。",
-     "tip": "用 0.9 倍跟读，放松地读完就算数。"},
+     "tip": "用 0.9 倍跟读，放松地读完就算数。",
+     "name_en": "Taper week",
+     "why_en": "Like a taper week in running: shadowing only, no extra load, so the past few weeks can settle in.",
+     "tip_en": "Shadow at 0.9×. Reading it through, relaxed, counts."},
 ]
 CYCLE_WEEKS = sum(b["weeks"] for b in BLOCKS)
+
+
+def local_block(b: dict) -> dict:
+    """The block with its name, reason and tip in the interface language."""
+    return {**b, "name": i18n.field(b, "name"), "why": i18n.field(b, "why"), "tip": i18n.field(b, "tip")}
+
+
+def blocks() -> list[dict]:
+    return [local_block(b) for b in BLOCKS]
 
 
 def current_block(today: date | None = None, settings: dict | None = None) -> dict:
@@ -130,13 +159,13 @@ def current_block(today: date | None = None, settings: dict | None = None) -> di
     override = s["coach"].get("block_override")
     if override:
         block = next((b for b in BLOCKS if b["key"] == override), BLOCKS[0])
-        return {**block, "week": 1, "cycle_week": weeks % CYCLE_WEEKS + 1, "pinned": True}
+        return {**local_block(block), "week": 1, "cycle_week": weeks % CYCLE_WEEKS + 1, "pinned": True}
     w = weeks % CYCLE_WEEKS
     for b in BLOCKS:
         if w < b["weeks"]:
-            return {**b, "week": w + 1, "cycle_week": weeks % CYCLE_WEEKS + 1, "pinned": False}
+            return {**local_block(b), "week": w + 1, "cycle_week": weeks % CYCLE_WEEKS + 1, "pinned": False}
         w -= b["weeks"]
-    return {**BLOCKS[0], "week": 1, "cycle_week": 1, "pinned": False}
+    return {**local_block(BLOCKS[0]), "week": 1, "cycle_week": 1, "pinned": False}
 
 
 # ---------------------------------------------------------------- baseline and targets
@@ -196,16 +225,26 @@ def targets(block: dict, base: dict) -> dict:
 # rhetoric schools, adapted to the talks you actually give.
 
 FORMS = {
-    "diegema": {"greek": "Διήγημα", "name": "叙事", "hint": "开头一句说结果或冲突，中间一个转折，结尾说你学到什么。"},
-    "chreia": {"greek": "Χρεία", "name": "引申", "hint": "先表态，再给一个理由和一个例子，最后回到这句话。"},
-    "ekphrasis": {"greek": "Ἔκφρασις", "name": "描述", "hint": "从整体到局部：先给一张图，再沿着数据流讲。"},
-    "synkrisis": {"greek": "Σύγκρισις", "name": "比较", "hint": "先给结论，再说取舍。比较的维度不超过三个。"},
-    "thesis": {"greek": "Θέσις", "name": "立论", "hint": "观点、理由、例子、再说一遍观点。"},
-    "ethopoeia": {"greek": "Ἠθοποιία", "name": "换对象", "hint": "想清楚对方最关心什么，第一句就回答它。"},
-    "enkomion": {"greek": "Ἐγκώμιον", "name": "致谢", "hint": "说具体的事和它带来的结果，不说空话。"},
-    "anaskeue": {"greek": "Ἀνασκευή", "name": "反驳", "hint": "先复述对方的观点，再指出最弱的一环，给替代方案。"},
-    "apokrisis": {"greek": "Ἀπόκρισις", "name": "答问", "hint": "先一句话回答，再用一个例子撑住，最后收回来。"},
-    "angelia": {"greek": "Ἀγγελία", "name": "汇报", "hint": "结论先行：做完了什么、卡在哪、需要谁做什么。"},
+    "diegema": {"greek": "Διήγημα", "name": "叙事", "hint": "开头一句说结果或冲突，中间一个转折，结尾说你学到什么。",
+                "name_en": "Narrative", "hint_en": "Open with the result or the conflict, put one turn in the middle, end with what you learned."},
+    "chreia": {"greek": "Χρεία", "name": "引申", "hint": "先表态，再给一个理由和一个例子，最后回到这句话。",
+               "name_en": "Maxim", "hint_en": "Take a position, give one reason and one example, then come back to the saying."},
+    "ekphrasis": {"greek": "Ἔκφρασις", "name": "描述", "hint": "从整体到局部：先给一张图，再沿着数据流讲。",
+                  "name_en": "Description", "hint_en": "Whole to parts: give the big picture first, then follow the data flow."},
+    "synkrisis": {"greek": "Σύγκρισις", "name": "比较", "hint": "先给结论，再说取舍。比较的维度不超过三个。",
+                  "name_en": "Comparison", "hint_en": "Conclusion first, then the trade-off. No more than three dimensions."},
+    "thesis": {"greek": "Θέσις", "name": "立论", "hint": "观点、理由、例子、再说一遍观点。",
+               "name_en": "Argument", "hint_en": "Claim, reason, example, then the claim again."},
+    "ethopoeia": {"greek": "Ἠθοποιία", "name": "换对象", "hint": "想清楚对方最关心什么，第一句就回答它。",
+                  "name_en": "Change the audience", "hint_en": "Work out what they care about most and answer it in your first sentence."},
+    "enkomion": {"greek": "Ἐγκώμιον", "name": "致谢", "hint": "说具体的事和它带来的结果，不说空话。",
+                 "name_en": "Credit", "hint_en": "Name the specific thing and what it made possible. No empty praise."},
+    "anaskeue": {"greek": "Ἀνασκευή", "name": "反驳", "hint": "先复述对方的观点，再指出最弱的一环，给替代方案。",
+                 "name_en": "Refutation", "hint_en": "Restate their view, point to the weakest link, offer an alternative."},
+    "apokrisis": {"greek": "Ἀπόκρισις", "name": "答问", "hint": "先一句话回答，再用一个例子撑住，最后收回来。",
+                  "name_en": "Answer", "hint_en": "Answer in one sentence, back it with one example, then close."},
+    "angelia": {"greek": "Ἀγγελία", "name": "汇报", "hint": "结论先行：做完了什么、卡在哪、需要谁做什么。",
+                "name_en": "Update", "hint_en": "Bottom line first: what's done, what's blocked, who needs to do what."},
 }
 
 BLOCK_FORMS = {
@@ -298,34 +337,65 @@ PROMPTS = [
 ]
 PROMPTS_BY_ID = {p["id"]: p for p in PROMPTS}
 
+AUDIENCE_EN = {
+    "团队": "the team", "面试官": "an interviewer", "社区": "the community", "朋友": "a friend",
+    "新同事": "a new teammate", "业务方": "business stakeholders", "非技术的业务方": "non-technical stakeholders",
+    "架构评审": "the architecture review", "管理层": "leadership", "成本评审": "a cost review",
+    "团队站会": "team standup", "全员会": "an all-hands", "分析师": "analysts",
+}
+
 
 def prompt_view(p: dict) -> dict:
     f = FORMS[p["form"]]
-    return {**p, "form_greek": f["greek"], "form_name": f["name"], "hint": f["hint"]}
+    audience = AUDIENCE_EN.get(p["audience"], p["audience"]) if i18n.is_en() else p["audience"]
+    return {**p, "audience": audience, "form_greek": f["greek"], "form_name": i18n.field(f, "name"), "hint": i18n.field(f, "hint")}
 
 
 # ---------------------------------------------------------------- agenda
 
 PREP_STEPS = [
-    (7, "outline", "写提纲", "把要讲的要点写进这次的原文，不用写成稿。"),
-    (5, "first", "完整讲一遍", "不看稿讲完，录下来看要点覆盖。"),
-    (3, "timed", "计时讲", "按规定时长讲，语速进目标带。"),
-    (2, "outsider", "换个对象讲", "讲给一个不懂技术的人听，看哪里需要多解释一句。"),
-    (1, "ends", "只练开头和结尾", "开头三十秒抛钩子，结尾二十秒回到你要的结论。"),
-    (0, "warmup", "上场前热身", "跟读一段六十秒的片段，把嗓子和语速带起来，再讲一遍开头。"),
+    # days before, key, title, detail, then the same two in English
+    (7, "outline", "写提纲", "把要讲的要点写进这次的原文，不用写成稿。",
+     "Write the outline", "Put the points you'll make into this talk's text. No need for a full script."),
+    (5, "first", "完整讲一遍", "不看稿讲完，录下来看要点覆盖。",
+     "Run it once", "Talk it through without notes and record it to check coverage."),
+    (3, "timed", "计时讲", "按规定时长讲，语速进目标带。",
+     "Timed run", "Speak to the time limit, with your pace inside the target band."),
+    (2, "outsider", "换个对象讲", "讲给一个不懂技术的人听，看哪里需要多解释一句。",
+     "Explain it to an outsider", "Talk it through for someone non-technical and notice where you need one more sentence."),
+    (1, "ends", "只练开头和结尾", "开头三十秒抛钩子，结尾二十秒回到你要的结论。",
+     "Openings and endings only", "Thirty seconds to hook them at the start, twenty to land the conclusion you want."),
+    (0, "warmup", "上场前热身", "跟读一段六十秒的片段，把嗓子和语速带起来，再讲一遍开头。",
+     "Warm up before you go on", "Shadow a sixty-second clip to warm up your voice and pace, then run the opening once more."),
 ]
 
 EVENT_KINDS = {
     "review": "架构评审", "one_on_one": "1:1", "team": "团队会", "stakeholder": "业务方",
     "allhands": "全员会", "interview": "面试", "talk": "分享", "other": "其他",
 }
+EVENT_KINDS_EN = {
+    "review": "Architecture review", "one_on_one": "1:1", "team": "Team meeting", "stakeholder": "Stakeholders",
+    "allhands": "All-hands", "interview": "Interview", "talk": "Talk", "other": "Other",
+}
 
 TEMPLATES = [
-    {"title": "Architecture Review：数据基础设施", "kind": "review", "minutes": 10},
-    {"title": "双周 1:1：进展和卡点", "kind": "one_on_one", "minutes": 3},
-    {"title": "数据团队 onsite：semantic layer", "kind": "talk", "minutes": 15},
-    {"title": "面试：自我介绍与项目深挖", "kind": "interview", "minutes": 5},
+    {"title": "Architecture Review：数据基础设施", "kind": "review", "minutes": 10,
+     "title_en": "Architecture Review: data infrastructure"},
+    {"title": "双周 1:1：进展和卡点", "kind": "one_on_one", "minutes": 3,
+     "title_en": "Biweekly 1:1: progress and blockers"},
+    {"title": "数据团队 onsite：semantic layer", "kind": "talk", "minutes": 15,
+     "title_en": "Data team onsite: semantic layer"},
+    {"title": "面试：自我介绍与项目深挖", "kind": "interview", "minutes": 5,
+     "title_en": "Interview: introduction and project deep dive"},
 ]
+
+
+def event_kinds() -> dict:
+    return EVENT_KINDS_EN if i18n.is_en() else EVENT_KINDS
+
+
+def templates() -> list[dict]:
+    return [{"title": i18n.field(tp, "title"), "kind": tp["kind"], "minutes": tp["minutes"]} for tp in TEMPLATES]
 
 
 def load_agenda() -> list[dict]:
@@ -344,7 +414,7 @@ def save_agenda(items: list[dict]) -> None:
 def new_event(body: dict) -> dict:
     return {
         "id": "ev-" + uuid.uuid4().hex[:8],
-        "title": (body.get("title") or "").strip() or "一次讲话",
+        "title": (body.get("title") or "").strip() or t("一次讲话", "A talk"),
         "date": body.get("date") or (date.today() + timedelta(days=7)).isoformat(),
         "kind": body.get("kind") if body.get("kind") in EVENT_KINDS else "other",
         "minutes": int(body.get("minutes") or 5),
@@ -362,7 +432,8 @@ def prep_plan(ev: dict, sessions: list[dict], today: date | None = None) -> list
     mine = [s for s in sessions if ev.get("practice_id") and s.get("practice_id") == ev["practice_id"] and s.get("word_count", 0) > 0]
     days_done = {s["created_at"][:10] for s in mine}
     steps = []
-    for offset, key, title, detail in PREP_STEPS:
+    for offset, key, title_zh, detail_zh, title_en, detail_en in PREP_STEPS:
+        title, detail = t(title_zh, title_en), t(detail_zh, detail_en)
         when = d - timedelta(days=offset)
         if when < created and offset != 0:
             continue   # the talk was added late; skip steps that were already past
@@ -383,7 +454,7 @@ def agenda_view(sessions: list[dict], practices: dict, today: date | None = None
         ev = {**ev, "has_script": bool(p and p.get("script", "").strip())}
         d = date.fromisoformat(ev["date"])
         ev["days_left"] = (d - today).days
-        ev["kind_label"] = EVENT_KINDS.get(ev["kind"], "其他")
+        ev["kind_label"] = event_kinds().get(ev["kind"], t("其他", "Other"))
         ev["steps"] = prep_plan(ev, sessions, today)
         ev["past"] = d < today
         out.append(ev)
@@ -486,11 +557,15 @@ def build_plan(d: date, sessions: list[dict], clips: list[dict], agenda: list[di
         item_id = f"{d.isoformat()}:{kind}:{n}"
         items.append({
             "id": item_id, "kind": kind, "practice_id": clip["id"],
-            "title": clip.get("title") or "今日片段",
+            "title": clip.get("title") or t("今日片段", "Today's clip"),
             "subtitle": clip.get("subtitle") or "",
             "seconds": round(clip.get("duration") or 90),
-            "detail": "先听原文，再跟着读。外放时录音不放原声，戴耳机可以边听边跟。" if kind == "shadow"
-                      else "先听原文，再用自己的话在九十秒内复述。看讲到了几个要点。",
+            "detail": t("先听原文，再跟着读。外放时录音不放原声，戴耳机可以边听边跟。",
+                        "Listen to the original first, then read along. On speakers the original stays quiet while you record; "
+                        "with headphones you can listen and follow at the same time.") if kind == "shadow"
+                      else t("先听原文，再用自己的话在九十秒内复述。看讲到了几个要点。",
+                             "Listen to the original first, then retell it in your own words within ninety seconds. "
+                             "See how many of its points you cover."),
             "session_id": done(item_id),
         })
 
@@ -508,8 +583,8 @@ def build_plan(d: date, sessions: list[dict], clips: list[dict], agenda: list[di
         ev, stp = step
         items.append({
             "id": stp["id"], "kind": "agenda", "practice_id": ev.get("practice_id"),
-            "title": f"{ev['title']}：{stp['title']}",
-            "subtitle": f"还有 {ev['days_left']} 天 · {ev['kind_label']}",
+            "title": t(f"{ev['title']}：{stp['title']}", f"{ev['title']}: {stp['title']}"),
+            "subtitle": t(f"还有 {ev['days_left']} 天", _days_to_go(ev["days_left"])) + f" · {ev['kind_label']}",
             "seconds": int(ev.get("minutes", 5)) * 60 if stp["key"] in ("first", "timed") else 90,
             "detail": stp["detail"],
             "session_id": done(stp["id"]) or (stp["id"] if stp["state"] == "done" else None),
@@ -521,7 +596,7 @@ def build_plan(d: date, sessions: list[dict], clips: list[dict], agenda: list[di
             item_id = f"{d.isoformat()}:impromptu:{p['id']}"
             items.append({
                 "id": item_id, "kind": "impromptu", "practice_id": None, "prompt_id": p["id"],
-                "title": f"{pv['form_name']}：{pv['audience']}",
+                "title": t(f"{pv['form_name']}：{pv['audience']}", f"{pv['form_name']}, for {pv['audience']}"),
                 "subtitle": pv["form_greek"],
                 "prompt": p["text"],
                 "seconds": p["seconds"],
@@ -529,6 +604,10 @@ def build_plan(d: date, sessions: list[dict], clips: list[dict], agenda: list[di
                 "session_id": done(item_id),
             })
     return {"block": block, "items": items, "shuffle": st.get("shuffle", 0)}
+
+
+def _days_to_go(n: int) -> str:
+    return "Today" if n == 0 else f"{n} day to go" if n == 1 else f"{n} days to go"
 
 
 def shuffle_prompt(d: date) -> None:
@@ -541,79 +620,94 @@ def shuffle_prompt(d: date) -> None:
 
 
 def review(session: dict, previous: dict | None, block: dict, tg: dict) -> dict:
-    """One headline and up to three concrete lines, judged against this block's focus."""
+    """One headline and up to three concrete lines, judged against this block's focus.
+    `zh` is the language of the recording; t() picks the language of the interface."""
     m = session["metrics"]
     zh = m.get("language", "en").startswith("zh")
-    unit = "字/分" if zh else "词/分"
+    unit = t("字/分", "chars/min") if zh else t("词/分", "wpm")
     lines: list[str] = []
     focus: list[dict] = []
 
     wpm = m["wpm"]
     lo, hi = (180, 260) if zh else (tg["wpm_low"], tg["wpm_high"])
+    band = t(f"{lo} 到 {hi}", f"{lo}–{hi}")
     pace_state = "low" if wpm < lo else ("high" if wpm > hi else "in")
     prev_wpm = previous["metrics"]["wpm"] if previous else None
-    focus.append({"key": "wpm", "label": "语速", "value": round(wpm), "unit": unit,
-                  "target": f"{lo} 到 {hi}", "state": pace_state,
+    focus.append({"key": "wpm", "label": t("语速", "Pace"), "value": round(wpm), "unit": unit,
+                  "target": band, "state": pace_state,
                   "delta": round(wpm - prev_wpm) if prev_wpm is not None else None})
     if pace_state == "low":
-        lines.append(f"语速 {round(wpm)} {unit}，比目标低 {round(lo - wpm)}。下一遍把每句的开头说快，不要等整句想好再开口。")
+        lines.append(t(f"语速 {round(wpm)} {unit}，比目标低 {round(lo - wpm)}。下一遍把每句的开头说快，不要等整句想好再开口。",
+                       f"Pace {round(wpm)} {unit}, {round(lo - wpm)} below target. Next time start each sentence faster; "
+                       "don't wait until the whole sentence is ready."))
     elif pace_state == "high":
-        lines.append(f"语速 {round(wpm)} {unit}，超过目标带。在要点之间留半秒停顿，让听众跟上。")
+        lines.append(t(f"语速 {round(wpm)} {unit}，超过目标带。在要点之间留半秒停顿，让听众跟上。",
+                       f"Pace {round(wpm)} {unit}, above the target band. Leave half a second between points so listeners keep up."))
     else:
         moved = ""
         if prev_wpm is not None and abs(wpm - prev_wpm) >= 5:
-            moved = f"，比上一遍{'快' if wpm > prev_wpm else '慢'} {abs(round(wpm - prev_wpm))}"
-        lines.append(f"语速 {round(wpm)} {unit}，在目标带 {lo} 到 {hi} 里{moved}。")
+            faster = wpm > prev_wpm
+            moved = t(f"，比上一遍{'快' if faster else '慢'} {abs(round(wpm - prev_wpm))}",
+                      f", {abs(round(wpm - prev_wpm))} {'faster' if faster else 'slower'} than last time")
+        lines.append(t(f"语速 {round(wpm)} {unit}，在目标带 {band} 里{moved}。",
+                       f"Pace {round(wpm)} {unit}, inside the target band of {band}{moved}."))
 
     pitch = (m.get("pitch") or {}).get("range_semitones")
     if pitch is not None:
         prev_pitch = ((previous or {}).get("metrics", {}).get("pitch") or {}).get("range_semitones") if previous else None
         st = "in" if pitch >= tg["pitch"] else "low"
-        focus.append({"key": "pitch", "label": "音高起伏", "value": pitch, "unit": "半音",
+        focus.append({"key": "pitch", "label": t("音高起伏", "Pitch range"), "value": pitch, "unit": t("半音", "semitones"),
                       "target": f"≥ {tg['pitch']}", "state": st,
                       "delta": round(pitch - prev_pitch, 1) if prev_pitch is not None else None})
         if st == "low" and ("pitch" in block["focus"] or len(lines) < 2):
-            lines.append(f"音高起伏 {pitch} 半音，偏平。每句挑一个关键词，重读并把音调抬上去。")
+            lines.append(t(f"音高起伏 {pitch} 半音，偏平。每句挑一个关键词，重读并把音调抬上去。",
+                           f"Pitch range {pitch} semitones, on the flat side. Pick one key word in each sentence, "
+                           "stress it and lift your pitch."))
 
     fpm = m["fillers"]["per_minute"]
     top = next(iter(m["fillers"].get("breakdown") or {}), None)
     prev_f = previous["metrics"]["fillers"]["per_minute"] if previous else None
     fst = "in" if fpm <= tg["fillers"] else "high"
-    focus.append({"key": "fillers", "label": "填充词", "value": round(fpm, 1), "unit": "次/分",
+    focus.append({"key": "fillers", "label": t("填充词", "Fillers"), "value": round(fpm, 1), "unit": t("次/分", "/min"),
                   "target": f"≤ {tg['fillers']}", "state": fst,
                   "delta": round(fpm - prev_f, 1) if prev_f is not None else None})
     if fst == "high" and ("fillers" in block["focus"] or len(lines) < 3):
-        word = f"，最多的是 {top}" if top else ""
-        lines.append(f"填充词每分钟 {round(fpm, 1)} 次{word}。想停就停，停顿比 um 好听。")
+        word = t(f"，最多的是 {top}", f", mostly “{top}”") if top else ""
+        lines.append(t(f"填充词每分钟 {round(fpm, 1)} 次{word}。想停就停，停顿比 um 好听。",
+                       f"{round(fpm, 1)} fillers a minute{word}. When you want to stop, stop: a pause sounds better than um."))
 
     loud = (m.get("loudness") or {}).get("mean_db")
     if loud is not None and "loudness" in block["focus"]:
         st = "in" if loud >= tg["loudness"] else "low"
         rel = round(loud - (tg["loudness"] + 3.0), 1)   # against your recent median, not an absolute level
-        focus.append({"key": "loudness", "label": "音量", "value": rel, "unit": "dB",
-                      "target": "和最近几次比", "state": st, "delta": None})
+        focus.append({"key": "loudness", "label": t("音量", "Volume"), "value": rel, "unit": "dB",
+                      "target": t("和最近几次比", "vs. recent takes"), "state": st, "delta": None})
         if st == "low":
-            lines.append("这次比你最近几次小声了 3 dB 以上。坐直，对着房间最远的墙说。")
+            lines.append(t("这次比你最近几次小声了 3 dB 以上。坐直，对着房间最远的墙说。",
+                           "This take was more than 3 dB quieter than your last few. Sit up and talk to the far wall of the room."))
 
     cov = m.get("coverage")
     if cov:
         missed = [p["text"] for p in cov["points"] if p["status"] == "missed"]
-        focus.append({"key": "coverage", "label": "要点覆盖", "value": round(cov["coverage"] * 100), "unit": "%",
+        focus.append({"key": "coverage", "label": t("要点覆盖", "Coverage"), "value": round(cov["coverage"] * 100), "unit": "%",
                       "target": "≥ 80", "state": "in" if cov["coverage"] >= 0.8 else "low", "delta": None})
         if missed and "coverage" in block["focus"]:
             first = missed[0][:40] + ("…" if len(missed[0]) > 40 else "")
-            lines.append(f"漏掉了 {len(missed)} 个要点，比如「{first}」。")
+            lines.append(t(f"漏掉了 {len(missed)} 个要点，比如「{first}」。",
+                           f"Missed {len(missed)} key point{'s' if len(missed) != 1 else ''}, such as “{first}”."))
 
     # Headline: the block's first focus that is off target, otherwise the best news.
     order = block["focus"] or ["wpm"]
     off = [f for k in order for f in focus if f["key"] == k and f["state"] != "in"]
     if off:
         f = off[0]
-        headline = {"wpm": "语速还要再提一点" if f["state"] == "low" else "语速偏快，留点停顿",
-                    "pitch": "语调还偏平", "fillers": "填充词偏多", "loudness": "声音再大一点",
-                    "coverage": "要点漏了几个"}.get(f["key"], "继续")
+        headline = {"wpm": t("语速还要再提一点", "Pick up the pace a little") if f["state"] == "low"
+                           else t("语速偏快，留点停顿", "A bit fast; leave some pauses"),
+                    "pitch": t("语调还偏平", "Still a little flat"), "fillers": t("填充词偏多", "Too many fillers"),
+                    "loudness": t("声音再大一点", "A little louder"),
+                    "coverage": t("要点漏了几个", "A few key points missed")}.get(f["key"], t("继续", "Keep going"))
     else:
-        headline = "这一遍达标了" if focus else "录好了"
+        headline = t("这一遍达标了", "On target this time") if focus else t("录好了", "Recorded")
     return {"headline": headline, "lines": lines[:3], "focus": focus, "block": block["key"]}
 
 

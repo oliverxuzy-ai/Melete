@@ -1,0 +1,4 @@
+/* Shown when macOS asks for microphone access. */
+"NSMicrophoneUsageDescription" = "Melete records your practice and analyzes it on this Mac. Audio and transcripts stay on this computer.";
+/* Shown when macOS asks for speech recognition access. */
+"NSSpeechRecognitionUsageDescription" = "While you record, Melete recognizes your speech on this Mac to show live captions.";

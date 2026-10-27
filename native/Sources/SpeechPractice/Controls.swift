@@ -25,7 +25,7 @@ struct MeleteToggle: View {
         .opacity(enabled ? 1 : 0.45)
         .animation(Motion.glass, value: isOn)
         .accessibilityAddTraits(.isToggle)
-        .accessibilityValue(isOn ? "开" : "关")
+        .accessibilityValue(isOn ? L("开", "On") : L("关", "Off"))
     }
 }
 
@@ -142,7 +142,7 @@ struct FieldLabel: View {
 struct ConfirmButton: View {
     let title: String
     var question: String = ""
-    var confirm: String = "删除"
+    var confirm: String = L("删除", "Delete")
     let action: () -> Void
     @State private var asking = false
 
@@ -152,7 +152,7 @@ struct ConfirmButton: View {
                 if !question.isEmpty {
                     Text(question).font(Typeface.ui(12)).foregroundStyle(Palette.ink2).lineLimit(2)
                 }
-                Button("取消") { asking = false }.buttonStyle(InkButtonStyle(color: Palette.ink2))
+                Button(L("取消", "Cancel")) { asking = false }.buttonStyle(InkButtonStyle(color: Palette.ink2))
                 Button {
                     asking = false
                     action()

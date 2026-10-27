@@ -19,6 +19,7 @@ mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 cp native/.build/release/SpeechPractice "$APP/Contents/MacOS/SpeechPractice"
 cp native/Resources/Info.plist "$APP/Contents/Info.plist"
 cp build_assets/Assets.car build_assets/AppIcon.icns "$APP/Contents/Resources/"
+cp -R native/Resources/*.lproj "$APP/Contents/Resources/"   # permission prompts in Chinese and English
 cp -R dist/SpeechPracticeServer "$APP/Contents/Resources/server"
 codesign --force --deep --sign - "$APP" >/dev/null 2>&1 || true
 echo "built: $(pwd)/$APP"

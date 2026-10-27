@@ -25,6 +25,7 @@ from pathlib import Path
 
 import analysis
 import coach
+import i18n
 import paths
 
 DAILY_DIR = paths.DATA_DIR / "daily"
@@ -243,7 +244,7 @@ def download_section(vid: str, start: float, end: float, base: Path) -> Path:
     run(cmd, timeout=900)
     found = sorted(base.parent.glob(base.name + ".*"))
     if not found:
-        raise RuntimeError("音频没有下载下来")
+        raise RuntimeError(i18n.t("音频没有下载下来", "The audio didn't download"))
     return found[0]
 
 
@@ -365,23 +366,24 @@ def claude_pick(cands: list[dict], sents: list[dict], role: str, meta: dict, set
                if role == "story" else
                "retelling: the learner listens once and then explains it in their own words, so it should be one "
                "speaker explaining one idea with a clear structure")
+    lang = i18n.t("Chinese", "English")   # the notes appear in the app, in its interface language
     prompt = (
         f"I am a senior data engineer practising spoken English for work: pace, tone, storytelling. "
         f"These passages come from '{meta.get('title')}' ({meta.get('channel')}). "
         f"Choose the one best suited to {purpose}. Skip anything that is two people talking, an ad, or a fragment.\n\n"
         f"{listing}\n\n"
-        "Reply in JSON. title_zh: a short Chinese title for the passage. why_zh: one Chinese sentence on why it fits. "
-        "notice_zh: two short Chinese notes on what to imitate in the delivery (pauses, emphasis, structure)."
+        f"Reply in JSON. title: a short {lang} title for the passage. why: one {lang} sentence on why it fits. "
+        f"notice: two short {lang} notes on what to imitate in the delivery (pauses, emphasis, structure)."
     )
     schema = {
         "type": "object",
         "properties": {
             "choice": {"type": "integer"},
-            "title_zh": {"type": "string"},
-            "why_zh": {"type": "string"},
-            "notice_zh": {"type": "array", "items": {"type": "string"}},
+            "title": {"type": "string"},
+            "why": {"type": "string"},
+            "notice": {"type": "array", "items": {"type": "string"}},
         },
-        "required": ["choice", "title_zh", "why_zh", "notice_zh"],
+        "required": ["choice", "title", "why", "notice"],
         "additionalProperties": False,
     }
     try:
@@ -410,28 +412,40 @@ def claude_pick(cands: list[dict], sents: list[dict], role: str, meta: dict, set
 
 
 def heuristic_notes(ref_metrics: dict, base: dict, role: str) -> tuple[str, list[str]]:
-    wpm = ref_metrics["wpm"]
-    diff = round(wpm - base["wpm"])
+    t = i18n.t
+    wpm = round(ref_metrics["wpm"])
+    diff = round(ref_metrics["wpm"] - base["wpm"])
     notes = []
     if role == "story":
         if diff >= 15:
-            notes.append(f"他的语速 {round(wpm)} 词/分，比你最近快 {diff}。先用 0.85 倍跟两遍，再回到原速。")
+            notes.append(t(f"他的语速 {wpm} 词/分，比你最近快 {diff}。先用 0.85 倍跟两遍，再回到原速。",
+                           f"The speaker talks at {wpm} wpm, {diff} faster than you lately. Shadow it twice at 0.85×, then at full speed."))
         elif diff <= -10:
-            notes.append(f"他的语速 {round(wpm)} 词/分，比你还慢。学他怎么用慢来压住重点。")
+            notes.append(t(f"他的语速 {wpm} 词/分，比你还慢。学他怎么用慢来压住重点。",
+                           f"The speaker talks at {wpm} wpm, slower than you. Notice how slowing down lands the key points."))
         else:
-            notes.append(f"他的语速 {round(wpm)} 词/分，和你差不多。这段练的是重音和停顿，不是速度。")
+            notes.append(t(f"他的语速 {wpm} 词/分，和你差不多。这段练的是重音和停顿，不是速度。",
+                           f"The speaker talks at {wpm} wpm, about your pace. This one is about stress and pauses, not speed."))
     p = ref_metrics["pauses"]
     if role == "story":
         if p["count"]:
-            notes.append(f"这段停顿 {p['count']} 次，最长 {p['longest_sec']} 秒。跟读时在同样的地方停。")
+            notes.append(t(f"这段停顿 {p['count']} 次，最长 {p['longest_sec']} 秒。跟读时在同样的地方停。",
+                           f"{p['count']} pauses here, the longest {p['longest_sec']} s. Pause in the same places when you shadow."))
         pr = (ref_metrics.get("pitch") or {}).get("range_semitones")
         if pr and pr >= base["pitch"] + 1.5:
-            notes.append(f"音高起伏 {pr} 半音，比你多 {round(pr - base['pitch'], 1)}。听他把哪几个词说重。")
+            more = round(pr - base["pitch"], 1)
+            notes.append(t(f"音高起伏 {pr} 半音，比你多 {more}。听他把哪几个词说重。",
+                           f"Pitch range {pr} semitones, {more} more than yours. Listen for the words that get the stress."))
     else:
-        notes.append("听的时候只抓三样：他的观点，一个理由，一个例子。复述时按这个顺序讲。")
-        notes.append(f"原段 {round(ref_metrics['duration_sec'])} 秒，复述控制在九十秒内，用你自己的词。")
-    why = ("一个人连续讲的故事段落，适合跟读，练开头抛钩子和语气推进。" if role == "story"
-           else "一段技术或观点的解释，适合听一遍后用自己的话复述。")
+        notes.append(t("听的时候只抓三样：他的观点，一个理由，一个例子。复述时按这个顺序讲。",
+                       "Listen for three things only: the point, one reason, one example. Retell them in that order."))
+        notes.append(t(f"原段 {round(ref_metrics['duration_sec'])} 秒，复述控制在九十秒内，用你自己的词。",
+                       f"The original runs {round(ref_metrics['duration_sec'])} s. Keep your retelling under ninety seconds, in your own words."))
+    why = (t("一个人连续讲的故事段落，适合跟读，练开头抛钩子和语气推进。",
+             "One person telling a story without a break: good for shadowing, and for practising a hook and a building tone.")
+           if role == "story" else
+           t("一段技术或观点的解释，适合听一遍后用自己的话复述。",
+             "One explanation of a technical idea or a view: listen once, then retell it in your own words."))
     return why, notes[:3]
 
 
@@ -458,14 +472,14 @@ def make_clip(section: Path, offset: float, meta: dict, role: str, day: date, se
     audio = decode_audio(str(section), sampling_rate=analysis.SAMPLE_RATE)
     cands, sents = best_windows(m["words"], role, pace, audio=audio)
     if not cands:
-        raise RuntimeError("这一段里没有找到一个人连续讲一分钟以上的地方")
+        raise RuntimeError(i18n.t("这一段里没有找到一个人连续讲一分钟以上的地方", "No stretch of one person talking for over a minute in this section"))
     pick = claude_pick(cands, sents, role, meta, settings)
     w = cands[int(pick["choice"])] if pick else cands[0]
     clip_path = CACHE_DIR / f"clip-{meta.get('id', 'local')}-{int(offset + w['start'])}.m4a"
     cut(section, max(0.0, w["start"] - 0.15), w["end"] + 0.35, clip_path)
     abs_start = offset + w["start"]
-    speaker = meta.get("channel") or meta.get("uploader") or "参照"
-    title = (pick or {}).get("title_zh") or (meta.get("title") or "今日片段")
+    speaker = meta.get("channel") or meta.get("uploader") or i18n.t("参照", "Reference")
+    title = (pick or {}).get("title") or (meta.get("title") or i18n.t("今日片段", "Today's clip"))
     link = f"https://www.youtube.com/watch?v={meta['id']}&t={int(abs_start)}s" if meta.get("id") and meta.get("source") != "local" else meta.get("url")
     clip_meta = {
         "date": day.isoformat(), "role": role, "source_id": meta.get("source_id"), "video_id": meta.get("id"),
@@ -482,8 +496,8 @@ def make_clip(section: Path, offset: float, meta: dict, role: str, day: date, se
 def notes_for(ref_metrics: dict, base: dict, role: str, pick: dict | None) -> str:
     why, notes = heuristic_notes(ref_metrics, base, role)
     if pick:
-        why = pick.get("why_zh") or why
-        notes = (pick.get("notice_zh") or [])[:2] + notes[:1]
+        why = pick.get("why") or why
+        notes = (pick.get("notice") or [])[:2] + notes[:1]
     return "\n".join([why] + [f"· {n}" for n in notes])
 
 
@@ -491,7 +505,7 @@ def clip_from_video(vid: str, role: str, day: date, settings: dict, base: dict, 
                     start: float | None = None, end: float | None = None) -> str:
     info = video_info(vid)
     if info.get("language") and not str(info["language"]).startswith("en"):
-        raise RuntimeError(f"这个视频不是英文（{info['language']}）")
+        raise RuntimeError(i18n.t(f"这个视频不是英文（{info['language']}）", f"This video isn't in English ({info['language']})"))
     if start is None:
         start, end = choose_section(info, role)
     end = end if end is not None else start + 200
@@ -536,7 +550,9 @@ def _prepare(day: date, sessions: list[dict], force: bool) -> None:
         return
     missing = [t for t in ("yt-dlp", "ffmpeg") if not tool(t)]
     if missing:
-        _set("failed", f"缺少 {' 和 '.join(missing)}。在终端运行 brew install {' '.join(missing)} 后再试。", 0, day.isoformat())
+        _set("failed", i18n.t(f"缺少 {' 和 '.join(missing)}。在终端运行 brew install {' '.join(missing)} 后再试。",
+                              f"Missing {' and '.join(missing)}. Run brew install {' '.join(missing)} in Terminal, then try again."),
+             0, day.isoformat())
         return
     base = coach.baseline(sessions)
     sources = load_sources()
@@ -547,7 +563,9 @@ def _prepare(day: date, sessions: list[dict], force: bool) -> None:
     for n, role in enumerate(roles):
         done = False
         for attempt, src in enumerate(pick_sources(sources, role, day, str(len(rec["items"])))[:4]):
-            _set("running", f"正在从 {src['name']} 找{'故事' if role == 'story' else '讲解'}片段", (len(rec["items"]) + 0.1) / want, day.isoformat())
+            _set("running", i18n.t(f"正在从 {src['name']} 找{'故事' if role == 'story' else '讲解'}片段",
+                                   f"Looking for {'a story' if role == 'story' else 'an explanation'} in {src['name']}"),
+                 (len(rec["items"]) + 0.1) / want, day.isoformat())
             try:
                 lo = int(src.get("min_sec", 150))
                 vids = [v for v in list_videos(src) if v["id"] not in used
@@ -556,14 +574,15 @@ def _prepare(day: date, sessions: list[dict], force: bool) -> None:
                     continue
                 seed = int(hashlib.sha1(f"{day}:{src['id']}".encode()).hexdigest(), 16)
                 vid = vids[seed % min(len(vids), 5)]["id"]
-                _set("running", f"正在下载并转写 {src['name']} 的一段音频", (len(rec["items"]) + 0.4) / want)
+                _set("running", i18n.t(f"正在下载并转写 {src['name']} 的一段音频", f"Downloading and transcribing audio from {src['name']}"),
+                     (len(rec["items"]) + 0.4) / want)
                 pid = clip_from_video(vid, role, day, settings, base, source=src)
                 rec["items"].append(pid)
                 used[vid] = day.isoformat()
                 done = True
                 break
             except Exception as e:
-                errors.append(f"{src['name']}：{e}")
+                errors.append(src["name"] + i18n.t("：", ": ") + str(e))
                 print("daily clip failed:", src["id"], e)
         if not done:
             break
@@ -573,28 +592,30 @@ def _prepare(day: date, sessions: list[dict], force: bool) -> None:
     rec["prepared_at"] = datetime.now().isoformat(timespec="seconds")
     st["days"][day.isoformat()] = {**(st["days"].get(day.isoformat()) or {}), **rec}
     save_state(st)
-    if len(rec["items"]) >= want:
-        _set("ready", f"今天的 {len(rec['items'])} 段已备好", 1.0, day.isoformat())
+    n = len(rec["items"])
+    clips = f"{n} clip{'s' if n != 1 else ''}"
+    if n >= want:
+        _set("ready", i18n.t(f"今天的 {n} 段已备好", f"Today's {clips} {'are' if n != 1 else 'is'} ready"), 1.0, day.isoformat())
     elif rec["items"]:
-        _set("partial", f"备好了 {len(rec['items'])} 段，其余没找到合适的", 1.0, day.isoformat())
+        _set("partial", i18n.t(f"备好了 {n} 段，其余没找到合适的", f"{clips} ready; no good match for the rest"), 1.0, day.isoformat())
     else:
-        _set("failed", errors[-1] if errors else "没有找到合适的片段", 0, day.isoformat())
+        _set("failed", errors[-1] if errors else i18n.t("没有找到合适的片段", "No suitable clip found"), 0, day.isoformat())
 
 
 def add_url(url: str, role: str, day: date, sessions: list[dict], start: float | None = None, end: float | None = None) -> None:
     """A video you found yourself: paste the link, get a clip in today's plan."""
     if not _lock.acquire(blocking=False):
-        raise RuntimeError("正在准备片段，稍后再试")
+        raise RuntimeError(i18n.t("正在准备片段，稍后再试", "Clips are being prepared; try again in a moment"))
     try:
         m = re.search(r"(?:v=|youtu\.be/|shorts/)([\w-]{11})", url)
         if not m:
-            raise RuntimeError("只支持 YouTube 链接")
+            raise RuntimeError(i18n.t("只支持 YouTube 链接", "Only YouTube links are supported"))
         t = re.search(r"[?&]t=(\d+)", url)
         if start is None and t:
             start = max(0.0, float(t.group(1)) - 5)
             end = start + 200
         settings = coach.load_settings()
-        _set("running", "正在处理你贴的视频", 0.3, day.isoformat())
+        _set("running", i18n.t("正在处理你贴的视频", "Working on the video you pasted"), 0.3, day.isoformat())
         pid = clip_from_video(m.group(1), role, day, settings, coach.baseline(sessions), start=start, end=end)
         st = load_state()
         rec = st["days"].get(day.isoformat()) or {"items": [], "errors": []}
@@ -602,7 +623,7 @@ def add_url(url: str, role: str, day: date, sessions: list[dict], start: float |
         st["days"][day.isoformat()] = rec
         st.setdefault("used_videos", {})[m.group(1)] = day.isoformat()
         save_state(st)
-        _set("ready", "你贴的视频已经做成片段", 1.0, day.isoformat())
+        _set("ready", i18n.t("你贴的视频已经做成片段", "The video you pasted is now a clip"), 1.0, day.isoformat())
     except Exception as e:
         _set("failed", str(e), 0, day.isoformat())
         raise

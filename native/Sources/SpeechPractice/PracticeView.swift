@@ -18,7 +18,7 @@ struct PracticeHeaderView: View {
     var body: some View {
         if let p = state.practice {
             VStack(alignment: .leading, spacing: 14) {
-                TextField("练习标题", text: $title)
+                TextField(L("练习标题", "Title"), text: $title)
                     .textFieldStyle(.plain)
                     .font(Typeface.display(30))
                     .foregroundStyle(Palette.ink)
@@ -32,24 +32,28 @@ struct PracticeHeaderView: View {
                             .frame(minHeight: 120, maxHeight: 260)
                             .paper(radius: Radius.tile, fill: Palette.marble)
                         if !p.isClip {
-                            TextField("这个练习的目标或注意点", text: $notes).textFieldStyle(.roundedBorder)
+                            TextField(L("这个练习的目标或注意点", "What this practice is for, or what to watch"), text: $notes).textFieldStyle(.roundedBorder)
                         }
                     }
                     .padding(.top, 8)
                 } label: {
-                    Text(p.isClip ? "原文（转写）" : (script.isEmpty ? "原文（还没有，填上后可以算要点覆盖）" : "原文"))
+                    Text(p.isClip ? L("原文（转写）", "Text (transcribed)")
+                         : (script.isEmpty ? L("原文（还没有，填上后可以算要点覆盖）", "Text (none yet; add it to measure key-point coverage)") : L("原文", "Text")))
                         .font(Typeface.ui(13, .medium)).foregroundStyle(Palette.ink2)
                 }
                 HStack(spacing: 12) {
-                    Button("保存") { Task { await state.savePractice(title: title, scenario: scenario.rawValue, script: script, notes: notes) } }
+                    Button(L("保存", "Save")) { Task { await state.savePractice(title: title, scenario: scenario.rawValue, script: script, notes: notes) } }
                         .primaryGlass().disabled(!dirty).opacity(dirty ? 1 : 0.5)
-                    if dirty { Text("有未保存的修改").font(Typeface.ui(12)).foregroundStyle(Palette.ink2) }
+                    if dirty { Text(L("有未保存的修改", "Unsaved changes")).font(Typeface.ui(12)).foregroundStyle(Palette.ink2) }
                     Spacer()
-                    ConfirmButton(title: "删除练习", question: "里面的 \(p.sessions.count) 条录音会保留，变成未分组。", confirm: "删除练习") {
+                    ConfirmButton(title: L("删除练习", "Delete practice"),
+                                  question: L("里面的 \(p.sessions.count) 条录音会保留，变成未分组。", "Its \(plural(p.sessions.count, "recording")) stay, ungrouped."),
+                                  confirm: L("删除练习", "Delete practice")) {
                         Task { await state.deletePractice() }
                     }
                 }
-                Text("改了原文以后，这个练习下所有录音的要点覆盖会重新计算。删除练习不会删录音。")
+                Text(L("改了原文以后，这个练习下所有录音的要点覆盖会重新计算。删除练习不会删录音。",
+                       "Changing the text recalculates key-point coverage for every recording here. Deleting the practice keeps the recordings."))
                     .font(Typeface.ui(11)).foregroundStyle(Palette.ink3)
             }
             .padding(22)
@@ -61,9 +65,10 @@ struct PracticeHeaderView: View {
 
     private func meta(_ p: Practice) -> some View {
         HStack(spacing: 14) {
-            Picker("场景", selection: $scenario) { ForEach(Scenario.allCases) { Text($0.label).tag($0) } }
+            Picker(L("场景", "Occasion"), selection: $scenario) { ForEach(Scenario.allCases) { Text($0.label).tag($0) } }
                 .labelsHidden().frame(width: 150)
-            Text("要点 \(p.points.count) 个，术语 \(p.terms.count) 个，建于 \(shortDay(p.createdAt))")
+            Text(L("要点 \(p.points.count) 个，术语 \(p.terms.count) 个，建于 \(shortDay(p.createdAt))",
+                   "\(plural(p.points.count, "key point")), \(plural(p.terms.count, "term")), created \(shortDay(p.createdAt))"))
                 .font(Typeface.ui(12)).foregroundStyle(Palette.ink2)
         }
     }
@@ -72,12 +77,12 @@ struct PracticeHeaderView: View {
         VStack(alignment: .leading, spacing: 10) {
             HStack(spacing: 10) {
                 if let c = p.clip {
-                    Text([c.channel, c.start.map { "从 \(formatClock($0)) 开始" }].compactMap { $0 }.joined(separator: "，"))
+                    Text([c.channel, c.start.map { L("从 \(formatClock($0)) 开始", "from \(formatClock($0))") }].compactMap { $0 }.joined(separator: L("，", ", ")))
                         .font(Typeface.ui(12)).foregroundStyle(Palette.ink2)
                     if let s = c.url, let url = URL(string: s) {
-                        Link("看原视频", destination: url).font(Typeface.ui(12)).foregroundStyle(Palette.kyanos)
+                        Link(L("看原视频", "Watch the video"), destination: url).font(Typeface.ui(12)).foregroundStyle(Palette.kyanos)
                     }
-                    if c.pickedBy == "claude" { Text("Claude 挑选").font(Typeface.ui(11)).foregroundStyle(Palette.ochre) }
+                    if c.pickedBy == "claude" { Text(L("Claude 挑选", "Picked by Claude")).font(Typeface.ui(11)).foregroundStyle(Palette.ochre) }
                 }
             }
             if !p.notes.isEmpty {

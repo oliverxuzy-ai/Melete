@@ -21,6 +21,7 @@ struct API {
         var req = URLRequest(url: url(path))
         req.httpMethod = method
         req.timeoutInterval = 600
+        API.stamp(&req)
         if let body { req.httpBody = body }
         if let contentType { req.setValue(contentType, forHTTPHeaderField: "Content-Type") }
         let (data, resp) = try await URLSession.shared.data(for: req)
@@ -57,6 +58,11 @@ struct API {
         body.append("\r\n--\(boundary)--\r\n".data(using: .utf8)!)
         let out = try await request("POST", path, body: body, contentType: "multipart/form-data; boundary=\(boundary)")
         return try API.decoder.decode(T.self, from: out)
+    }
+
+    /// Tells the server which language to write its text in (the plan, verdicts, the recap).
+    static func stamp(_ req: inout URLRequest) {
+        req.setValue(LanguageSetting.shared.current.rawValue, forHTTPHeaderField: "X-Melete-Lang")
     }
 
     /// Keeps query strings intact (appendingPathComponent would escape the "?").
