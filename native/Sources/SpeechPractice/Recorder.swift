@@ -217,6 +217,10 @@ final class Recorder {
     @ObservationIgnored let meter = LevelMeter()
     @ObservationIgnored private(set) var startDate: Date?
 
+    /// For the render harness, which draws a take in progress without recording one: the water
+    /// clock reads the time left from this start.
+    func pretendStarted(at date: Date?) { startDate = date }
+
     /// Seconds of audio the last recording actually holds (the file, not the clock).
     @ObservationIgnored private(set) var capturedSeconds: Double = 0
 

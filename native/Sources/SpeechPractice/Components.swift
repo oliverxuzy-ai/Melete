@@ -214,6 +214,7 @@ struct VoiceOrb: View {
     var visible = true
     var size: CGFloat = 240
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.renderClock) private var renderClock
     @State private var levelFollower = Follower()
     @State private var waterFollower = Follower()
 
@@ -221,7 +222,7 @@ struct VoiceOrb: View {
         // Always the display's full rate: changing the schedule mid-flight does not always take,
         // and the countdown is the one moment that must never stutter.
         TimelineView(.animation(paused: !visible || (reduceMotion && !live))) { ctx in
-            let t = ctx.date
+            let t = renderClock ?? ctx.date
             let _ = FrameProbe.mark()
             let lv = levelFollower.next(live ? level() : 0, at: t, speed: 16)
             let rem = waterFollower.next(remaining(t) ?? 1, at: t, speed: 5)
@@ -385,5 +386,22 @@ extension EnvironmentValues {
         get { self[RenderModeKey.self] }
         set { self[RenderModeKey.self] = newValue }
     }
+
+    /// The moment the harness draws, when it draws the frames of an animation; nil follows the
+    /// display.
+    var renderClock: Date? {
+        get { self[RenderClockKey.self] }
+        set { self[RenderClockKey.self] = newValue }
+    }
+
+    /// Where the harness has scrolled the subtitles to: a line index, between two lines while
+    /// they move. Nil centres the active line.
+    var renderLine: Double? {
+        get { self[RenderLineKey.self] }
+        set { self[RenderLineKey.self] = newValue }
+    }
 }
+
+private struct RenderClockKey: EnvironmentKey { static let defaultValue: Date? = nil }
+private struct RenderLineKey: EnvironmentKey { static let defaultValue: Double? = nil }
 
