@@ -18,10 +18,7 @@
 ![本地优先](https://img.shields.io/badge/%E6%95%B0%E6%8D%AE-%E5%8F%AA%E5%9C%A8%E6%9C%AC%E6%9C%BA-3B7650?style=flat-square)
 [![MIT 许可证](https://img.shields.io/github/license/oliverxuzy-ai/Melete?style=flat-square&color=1A1916)](LICENSE)
 
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset=".github/assets/screenshots/zh/window-shadow-live-dark.webp">
-  <img src=".github/assets/screenshots/zh/window-shadow-live-light.webp" width="880" alt="在 Melete 里跟读：一边说，水钟里的水一边起浪，外圈的光环跟着声音转动、变亮，字幕跟着你往下走">
-</picture>
+<img src=".github/assets/screenshots/zh/window-shadow-live-light.webp" width="880" alt="在 Melete 里跟读：一边说，水钟里的水一边起浪，外圈的光环跟着声音转动、变亮，字幕跟着你往下走">
 
 </div>
 
@@ -42,18 +39,9 @@
 - **主题**：围绕一个题目、讲稿或要讲的会，自己讲。
 
 <p align="center">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset=".github/assets/screenshots/zh/window-home-min-dark.png">
-    <img src=".github/assets/screenshots/zh/window-home-min-light.png" width="32%" alt="总览：本周的桂冠居中，左边是自己的表现走势，右边是节奏和下一场要讲的会">
-  </picture>
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset=".github/assets/screenshots/zh/window-retell-min-dark.png">
-    <img src=".github/assets/screenshots/zh/window-retell-min-light.png" width="32%" alt="复述：今天的论证片段，准备用自己的话复述">
-  </picture>
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset=".github/assets/screenshots/zh/window-verdict-min-dark.png">
-    <img src=".github/assets/screenshots/zh/window-verdict-min-light.png" width="32%" alt="即兴讲完后的点评卡：一句结论、四个数字和两条下次可以试的">
-  </picture>
+  <img src=".github/assets/screenshots/zh/window-home-min-light.png" width="32%" alt="总览：本周的桂冠居中，左边是自己的表现走势，右边是节奏和下一场要讲的会">
+  <img src=".github/assets/screenshots/zh/window-retell-min-light.png" width="32%" alt="复述：今天的论证片段，准备用自己的话复述">
+  <img src=".github/assets/screenshots/zh/window-verdict-min-light.png" width="32%" alt="即兴讲完后的点评卡：一句结论、四个数字和两条下次可以试的">
   <br>
   <sub>总览 · 用自己的话复述一段片段 · 每讲完一段给你的点评</sub>
 </p>
@@ -243,7 +231,7 @@ cd Melete
 
 ### 截图
 
-README 里的截图是 App 自己画的，用的是三周虚构的练习数据（`.github/screenshots/seed.py`），不是任何人的录音。改了界面以后，在自己的分支上运行 **Actions → Screenshots → Run workflow**，它会画好中英文、浅色和深色的截图，并提交到那个分支。最上面那张会动的图，是用同样的办法画出 15 秒的帧，再合成动态 WebP。在已经打包好 App 的 Mac 上，运行 `.github/screenshots/render.sh` 也能在本地画（需要先 `brew install webp`），它用单独的数据目录和端口，不会动你自己的历史记录。
+README 里的截图是 App 自己画的，用的是三周虚构的练习数据（`.github/screenshots/seed.py`），不是任何人的录音。改了界面以后，在自己的分支上运行 **Actions → Screenshots → Run workflow**，它会画好中英文浅色界面的截图，并提交到那个分支。最上面那张会动的图，是用同样的办法画出 15 秒的帧，再合成动态 WebP。在已经打包好 App 的 Mac 上，运行 `.github/screenshots/render.sh` 也能在本地画（需要先 `brew install webp`），它用单独的数据目录和端口，不会动你自己的历史记录。
 
 ## 设计
 

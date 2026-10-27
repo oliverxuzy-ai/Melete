@@ -1,13 +1,14 @@
 #!/bin/sh
 # Draw the README screenshots from made-up practice data (see seed.py): English and Chinese,
-# light and dark. Needs macOS, dist/Melete.app and the .venv that build_native.sh makes.
+# in the light look (SCHEMES=light,dark draws dark as well). Needs macOS, dist/Melete.app
+# and the .venv that build_native.sh makes.
 # The Screenshots workflow runs this on a clean GitHub runner. Locally it uses its own data
 # folder and port, so your history is not touched.
 #
 #   .github/screenshots/render.sh                        writes .github/assets/screenshots/{en,zh}/
 #   PAGES=window-home,history .github/screenshots/render.sh   other pages (names in RenderHarness.swift)
 #
-# window-shadow-live is a moving picture: 180 frames per look, joined into an animated WebP
+# window-shadow-live is a moving picture: 180 frames, joined into an animated WebP
 # with img2webp (brew install webp).
 set -eu
 cd "$(dirname "$0")/../.."
@@ -16,6 +17,7 @@ OUT=.github/assets/screenshots
 # The README set: Shadowing mid-take as a moving picture, then the Overview, Retell before
 # speaking, and the critique card after today's impromptu take (window-verdict-min).
 PAGES=${PAGES:-window-shadow-live,window-home-min,window-retell-min,window-verdict-min}
+SCHEMES=${SCHEMES:-light}
 PORT=${SCREENSHOT_PORT:-8790}
 APP=dist/Melete.app/Contents/MacOS/SpeechPractice
 PY=.venv/bin/python
@@ -47,7 +49,7 @@ render() {
   lang=$1
   home="$WORK/home-$lang"
   mkdir -p "$home"
-  CFFIXED_USER_HOME="$home" SPEECH_SERVER_URL="http://127.0.0.1:$PORT" RENDER_ONLY="$PAGES" \
+  CFFIXED_USER_HOME="$home" SPEECH_SERVER_URL="http://127.0.0.1:$PORT" RENDER_ONLY="$PAGES" RENDER_SCHEMES="$SCHEMES" \
     "$APP" --render "$WORK/png-$lang" --lang "$lang" >"$WORK/app-$lang.log" 2>&1 &
   app=$!
   waited=0
@@ -115,11 +117,13 @@ for lang in en zh; do
     sips -Z "$size" "$f" --out "$OUT/$lang/$name" >/dev/null
   done
   # Moving pictures: a folder of frames each, 12 a second (83 ms), drawn at the size shown.
+  # Lossy at quality 92: below about 90 the encoder leaves pixels that changed by a few
+  # levels as they were, and the halo's soft gradient shows the edges of those patches.
   for frames in "$WORK/png-$lang"/*/; do
     [ -d "$frames" ] || continue
     name=$(basename "$frames")
     # shellcheck disable=SC2046 # one argument per frame, in order
-    img2webp -loop 0 -mixed -q 82 -m 6 -d 83 $(ls "$frames"*.png) -o "$OUT/$lang/$name.webp" >/dev/null
+    img2webp -loop 0 -lossy -q 92 -m 6 -d 83 $(ls "$frames"*.png) -o "$OUT/$lang/$name.webp" >/dev/null
   done
 done
 

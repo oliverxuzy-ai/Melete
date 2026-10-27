@@ -76,7 +76,7 @@ enum RenderHarness {
 
         for (name, width, height, make) in pages {
             if let only, !only.contains(name) { continue }
-            for scheme in [ColorScheme.light, .dark] {
+            for scheme in schemes {
                 log("render: \(name) \(scheme)")
                 draw(make(), width: width, height: height, scheme: scheme, scale: 2,
                      state: state, recorder: recorder, stage: stage,
@@ -113,8 +113,8 @@ enum RenderHarness {
     /// The shadow studio mid-take as a loop of frames, for the README: a voice swells the halo
     /// and raises waves on the water, and the subtitles move along with it. The halo turns once
     /// in 15 s and every rhythm of the voice divides 15 s, so the loop closes on itself; only
-    /// the clock and the subtitles start over. Frames go to `<name>-light/0000.png` and
-    /// `<name>-dark/`; render.sh joins them into an animated WebP.
+    /// the clock and the subtitles start over. Frames go to `<name>-light/0000.png` (and
+    /// `<name>-dark/`); render.sh joins them into an animated WebP.
     static func shadowLoop(name: String, stage: StageModel, recorder: Recorder, state: AppState, into dir: URL) async {
         guard await shadowStage(stage: stage, recorder: recorder, state: state) != nil,
               let sentences = stage.practice?.reference?.sentences, !sentences.isEmpty else {
@@ -153,7 +153,7 @@ enum RenderHarness {
 
         let origin = Date(timeIntervalSinceReferenceDate: 0)
         let pace = [2.0, 3, 5, 4, 1, 0, 2, 4, 6, 5, 3, 1, 0, 2, 3]
-        for scheme in [ColorScheme.light, .dark] {
+        for scheme in schemes {
             let out = dir.appendingPathComponent("\(name)-\(scheme == .light ? "light" : "dark")")
             try? FileManager.default.createDirectory(at: out, withIntermediateDirectories: true)
             log("render: \(name) \(scheme), \(Int(fps * seconds)) frames")
@@ -179,6 +179,12 @@ enum RenderHarness {
         recorder.meter.reset()
         recorder.elapsed = startElapsed
         stage.activeSentence = first
+    }
+
+    /// Light and dark, or only what RENDER_SCHEMES names (`light`, `dark`).
+    static var schemes: [ColorScheme] {
+        let named = ProcessInfo.processInfo.environment["RENDER_SCHEMES"].map { Set($0.split(separator: ",").map(String.init)) }
+        return [ColorScheme.light, .dark].filter { named?.contains($0 == .light ? "light" : "dark") ?? true }
     }
 
     static func log(_ s: String) {
