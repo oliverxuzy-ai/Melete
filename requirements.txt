@@ -3,6 +3,7 @@ fastapi
 uvicorn[standard]
 python-multipart
 numpy
+av<19              # faster-whisper 1.2 calls av.open(metadata_errors=...), which PyAV 19 removed
 pywebview
 pyinstaller
 anthropic          # optional: lets Claude pick daily clips and write notes
