@@ -99,6 +99,10 @@ enum UpdateEngine {
     /// Left in `folder` by a swap, so the new version can say it was just installed.
     private static var marker: URL { folder.appendingPathComponent("installed.json") }
 
+    /// This user may change `url` (the folder holding the app, or the app itself).
+    /// Here rather than in Updater, where @Observable's own `access` would hide the C call.
+    static func canWrite(_ url: URL) -> Bool { access(url.path, W_OK) == 0 }
+
     /// https only, except a feed on this Mac (the CI probe serves one on 127.0.0.1).
     static func allowed(_ url: URL) -> Bool {
         url.scheme == "https" || (url.scheme == "http" && (url.host == "127.0.0.1" || url.host == "localhost"))
@@ -375,7 +379,7 @@ final class Updater {
     /// Why this copy cannot be replaced where it is, if it cannot.
     var installBlocker: String? {
         let app = Bundle.main.bundleURL, parent = app.deletingLastPathComponent()
-        let writable = access(parent.path, W_OK) == 0 && access(app.path, W_OK) == 0
+        let writable = UpdateEngine.canWrite(parent) && UpdateEngine.canWrite(app)
         // Opened straight from the download (macOS runs it from a hidden read-only copy) or from the disk image.
         if app.path.contains("/AppTranslocation/") || (!writable && app.path.hasPrefix("/Volumes/")) {
             return L("Melete 是从下载的位置直接打开的。先把它拖进“应用程序”文件夹，再更新。",
