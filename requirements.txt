@@ -1,0 +1,8 @@
+faster-whisper
+fastapi
+uvicorn[standard]
+python-multipart
+numpy
+pywebview
+pyinstaller
+anthropic          # optional: lets Claude pick daily clips and write notes

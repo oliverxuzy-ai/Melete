@@ -1,0 +1,38 @@
+# macOS
+.DS_Store
+
+# Python
+.venv/
+venv/
+__pycache__/
+*.pyc
+
+# Build outputs (PyInstaller, SwiftPM, Xcode)
+build/
+dist/
+native/.build/
+.build/
+.swiftpm/
+DerivedData/
+xcuserdata/
+*.xcuserstate
+
+# Local source backups
+.backup/
+
+# Secrets and local config
+.env
+.env.*
+settings.json
+
+# Node
+node_modules/
+
+# Recordings and test audio
+*.wav
+*.m4a
+*.mp3
+*.webm
+*.flac
+*.aac
+*.ogg

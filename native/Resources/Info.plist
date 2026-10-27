@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>CFBundleDevelopmentRegion</key><string>zh_CN</string>
+  <key>CFBundleExecutable</key><string>SpeechPractice</string>
+  <key>CFBundleIdentifier</key><string>com.zhengyangxu.speechpractice</string>
+  <key>CFBundleName</key><string>Melete</string>
+  <key>CFBundleDisplayName</key><string>Melete</string>
+  <key>CFBundlePackageType</key><string>APPL</string>
+  <key>CFBundleShortVersionString</key><string>2.0.0</string>
+  <key>CFBundleVersion</key><string>4</string>
+  <key>CFBundleIconFile</key><string>AppIcon</string>
+  <key>CFBundleIconName</key><string>AppIcon</string>
+  <key>LSMinimumSystemVersion</key><string>26.0</string>
+  <key>LSApplicationCategoryType</key><string>public.app-category.productivity</string>
+  <key>LSMultipleInstancesProhibited</key><true/>
+  <key>NSHighResolutionCapable</key><true/>
+  <key>NSPrincipalClass</key><string>NSApplication</string>
+  <key>NSMicrophoneUsageDescription</key><string>Melete 录下你的练习并在本机分析。音频和转写只保存在这台电脑上。</string>
+  <key>NSSpeechRecognitionUsageDescription</key><string>录音时在本机实时识别你说的话，用来显示实时字幕。</string>
+</dict>
+</plist>

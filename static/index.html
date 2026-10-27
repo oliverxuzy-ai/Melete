@@ -1,0 +1,549 @@
+<!doctype html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>口述练习记录</title>
+<style>
+  :root {
+    --bg:#f6f5f1; --side:#efede7; --card:#fff; --ink:#1d1d1b; --ink2:#5f5e58; --muted:#9a9890; --line:#e6e4dd;
+    --accent:#2f6fed; --accent-soft:#e3ecfd; --rec:#d93a3a; --ok:#2e8b57;
+    --filler:#ffe3a3; --hedge:#dcd3ff; --pause:#e8e6e0;
+    --cov:#e2f4e6; --part:#fff1c2; --miss:#fbdcdc;
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink); font:15px/1.5 -apple-system,"PingFang SC","Helvetica Neue",Arial,sans-serif; }
+  .layout { display:flex; min-height:100vh; }
+  .side { width:236px; flex:none; background:var(--side); border-right:1px solid var(--line); padding:18px 12px 14px; position:sticky; top:0; height:100vh; overflow:auto; display:flex; flex-direction:column; }
+  .brand { font-weight:700; font-size:16px; padding:0 10px 14px; }
+  .plist { list-style:none; margin:0; padding:0; flex:1; }
+  .plist li { padding:7px 10px; border-radius:8px; cursor:pointer; display:flex; justify-content:space-between; gap:8px; font-size:14px; align-items:baseline; }
+  .plist li span.t { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .plist li:hover { background:#e6e3da; }
+  .plist li.active { background:#fff; font-weight:600; box-shadow:0 1px 2px rgba(0,0,0,.06); }
+  .plist li.sep, .plist li.sep:hover { cursor:default; background:none; color:var(--muted); font-size:12px; margin-top:12px; font-weight:500; }
+  .cnt { color:var(--muted); font-size:12px; flex:none; }
+  .side-foot { font-size:12px; color:var(--muted); padding:10px 10px 0; }
+  .wrap { flex:1; min-width:0; max-width:1000px; padding:24px 24px 60px; }
+  h2 { font-size:15px; margin:0 0 12px; color:var(--ink2); font-weight:600; letter-spacing:.02em; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:18px 20px; margin-bottom:18px; }
+  .row { display:flex; gap:12px; flex-wrap:wrap; align-items:center; }
+  .between { justify-content:space-between; }
+  label { font-size:13px; color:var(--ink2); }
+  .lbl { display:block; margin:12px 0 6px; }
+  input[type=text], select, textarea { font:inherit; padding:7px 10px; border:1px solid var(--line); border-radius:8px; background:#fff; color:var(--ink); }
+  input[type=text] { min-width:220px; }
+  textarea { width:100%; min-height:90px; resize:vertical; line-height:1.6; }
+  textarea.script { min-height:160px; }
+  .title-input { font:inherit; font-size:18px; font-weight:600; border:none; background:transparent; padding:4px 0; min-width:320px; color:var(--ink); }
+  .title-input:focus { outline:none; border-bottom:1px solid var(--accent); }
+  button { font:inherit; padding:8px 14px; border-radius:8px; border:1px solid var(--line); background:#fff; color:var(--ink); cursor:pointer; }
+  button:hover { border-color:#c9c7bf; }
+  button.primary { background:var(--accent); border-color:var(--accent); color:#fff; }
+  button.danger { color:var(--rec); }
+  button.wide { width:100%; margin-top:10px; }
+  button:disabled { opacity:.5; cursor:default; }
+  .recbtn { width:120px; height:120px; border-radius:50%; border:none; background:var(--rec); color:#fff; font-size:16px; font-weight:600; box-shadow:0 6px 20px rgba(217,58,58,.25); }
+  .recbtn.on { background:#222; animation:pulse 1.4s infinite; }
+  @keyframes pulse { 0%{box-shadow:0 0 0 0 rgba(217,58,58,.45)} 70%{box-shadow:0 0 0 18px rgba(217,58,58,0)} 100%{box-shadow:0 0 0 0 rgba(217,58,58,0)} }
+  .recarea { display:flex; gap:28px; align-items:center; padding:10px 0; }
+  .timer { font-size:34px; font-variant-numeric:tabular-nums; font-weight:600; }
+  .meter { width:220px; height:8px; background:var(--line); border-radius:4px; overflow:hidden; }
+  .meter i { display:block; height:100%; width:0; background:var(--ok); transition:width .08s; }
+  .status { color:var(--ink2); font-size:13px; min-height:20px; }
+  .tiles { display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:12px; }
+  .tile { background:var(--bg); border-radius:10px; padding:12px 14px; }
+  .tile .v { font-size:26px; font-weight:700; line-height:1.15; font-variant-numeric:tabular-nums; }
+  .tile .u { font-size:12px; color:var(--muted); margin-left:3px; font-weight:500; }
+  .tile .k { font-size:12px; color:var(--ink2); margin-top:4px; }
+  .tile .n { font-size:11px; color:var(--muted); }
+  .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:18px; }
+  svg text { font-size:11px; fill:var(--ink2); }
+  .transcript { line-height:1.9; font-size:15px; }
+  mark.f { background:var(--filler); border-radius:3px; padding:0 2px; }
+  mark.h { background:var(--hedge); border-radius:3px; padding:0 2px; }
+  .pause { background:var(--pause); color:var(--ink2); font-size:11px; border-radius:4px; padding:1px 5px; margin:0 3px; font-variant-numeric:tabular-nums; }
+  .legend { font-size:12px; color:var(--ink2); margin-bottom:8px; }
+  .legend span { margin-right:12px; }
+  .chips span { display:inline-block; background:var(--bg); border-radius:6px; padding:2px 8px; margin:2px 4px 2px 0; font-size:13px; }
+  .chips span.ok { background:#eef8f0; border:1px solid #9fd3ab; }
+  .chips span.no { background:#fdeeee; border:1px solid #e8a9a9; }
+  .pt { padding:6px 10px; border-radius:6px; margin:4px 0; line-height:1.6; }
+  .pt.covered { background:var(--cov); } .pt.partial { background:var(--part); } .pt.missed { background:var(--miss); }
+  .pt .miss { font-size:12px; color:var(--ink2); }
+  .extra li { margin:4px 0; color:var(--ink2); }
+  table { width:100%; border-collapse:collapse; font-size:13px; }
+  th, td { text-align:left; padding:7px 8px; border-bottom:1px solid var(--line); white-space:nowrap; }
+  th { color:var(--ink2); font-weight:600; }
+  tr.click { cursor:pointer; } tr.click:hover { background:var(--bg); }
+  tr.active { background:var(--accent-soft); }
+  .stars button { padding:4px 8px; } .stars button.on { background:var(--accent-soft); border-color:var(--accent); }
+  .hint { font-size:12px; color:var(--muted); }
+  audio { width:100%; margin-top:8px; }
+  .sent { display:flex; gap:10px; padding:6px 10px; border-radius:6px; cursor:pointer; line-height:1.6; }
+  .sent:hover { background:var(--bg); }
+  .sent.active { background:var(--accent-soft); }
+  .sent.unmatched { color:var(--muted); }
+  .sent .t { flex:none; width:46px; color:var(--muted); font-size:12px; font-variant-numeric:tabular-nums; padding-top:2px; }
+  .rate button { padding:4px 9px; font-size:13px; font-variant-numeric:tabular-nums; }
+  .rate button.on { background:var(--accent-soft); border-color:var(--accent); font-weight:600; }
+  .sents { max-height:420px; overflow:auto; border:1px solid var(--line); border-radius:8px; padding:6px; margin-top:10px; }
+  .hidden { display:none !important; }
+  @media (max-width:820px) { .layout{flex-direction:column} .side{width:100%;height:auto;position:static} .grid2{grid-template-columns:1fr} }
+</style>
+</head>
+<body>
+<div class="layout">
+  <aside class="side">
+    <div class="brand">口述练习记录</div>
+    <ul class="plist" id="plist"></ul>
+    <button class="wide" id="newPractice">+ 新建练习</button>
+    <div class="side-foot" id="model"></div>
+  </aside>
+
+  <main class="wrap">
+    <div class="card hidden" id="newForm">
+      <h2>新建练习</h2>
+      <div class="row"><label>标题 <input type="text" id="nTitle" placeholder="比如 数据管道选型"></label><label>场景 <select id="nScenario"></select></label></div>
+      <label class="lbl">原文（当提纲用，不必逐字读；对话稿里的角色名会自动忽略）</label>
+      <textarea class="script" id="nScript" placeholder="把稿子或提纲粘贴到这里"></textarea>
+      <div class="row" style="margin-top:12px"><button class="primary" id="nCreate">创建</button><button id="nCancel">取消</button></div>
+    </div>
+
+    <div class="card hidden" id="practiceCard">
+      <div class="row between"><input class="title-input" id="pTitle"><span class="hint" id="pMeta"></span></div>
+      <div class="row" style="margin-top:6px"><label>场景 <select id="pScenario"></select></label></div>
+      <label class="lbl">原文</label>
+      <textarea class="script" id="pScript"></textarea>
+      <label class="lbl">这个练习的目标 / 注意点</label>
+      <textarea id="pNotes" style="min-height:60px"></textarea>
+      <div class="row between" style="margin-top:12px"><button class="primary" id="pSave">保存练习</button><button class="danger" id="pDel">删除练习</button></div>
+      <div class="hint" style="margin-top:6px">改了原文以后，这个练习下所有录音的要点覆盖会重新计算。删除练习不会删录音，录音会变成未分组。</div>
+    </div>
+
+    <div class="card hidden" id="shadowCard">
+      <h2>跟读</h2>
+      <div id="shadowBox"></div>
+    </div>
+
+    <div class="card">
+      <div class="row" style="margin-bottom:14px">
+        <label>语言 <select id="lang"><option value="en">English</option><option value="zh">中文</option><option value="auto">自动</option></select></label>
+        <label>场景 <select id="scenario"></select></label>
+        <label>标题 <input type="text" id="title" placeholder="可选"></label>
+      </div>
+      <div class="recarea">
+        <button id="rec" class="recbtn">开始录音</button>
+        <div>
+          <div class="timer" id="timer">00:00</div>
+          <div class="meter"><i id="level"></i></div>
+          <div class="status" id="status">点击开始，浏览器会请求麦克风权限。</div>
+          <div class="hint" id="recTarget"></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="result" class="hidden">
+      <div class="card">
+        <div class="row between" style="margin-bottom:12px"><h2 id="rtitle" style="margin:0"></h2><span class="hint" id="rmeta"></span></div>
+        <div class="tiles" id="tiles"></div>
+      </div>
+
+      <div class="card" id="covCard">
+        <h2>要点覆盖</h2>
+        <div id="covBody"></div>
+      </div>
+
+      <div class="grid2">
+        <div class="card"><h2>语速随时间（每 30 秒）</h2><div id="pace"></div><div class="hint" id="paceHint"></div></div>
+        <div class="card"><h2>用词</h2><div id="wordsBox"></div></div>
+      </div>
+
+      <div class="card">
+        <h2>转写</h2>
+        <div class="legend"><span><mark class="f">填充词</mark></span><span><mark class="h">弱化 / 犹豫用语</mark></span><span><span class="pause">停顿 1.2s</span> 停顿 ≥ 0.5s</span></div>
+        <div class="transcript" id="transcript"></div>
+        <audio id="player" controls></audio>
+      </div>
+
+      <div class="card">
+        <h2>我的记录</h2>
+        <div class="row" style="margin-bottom:10px">
+          <label>自评</label><span class="stars" id="stars"></span>
+          <label style="margin-left:14px">标题 <input type="text" id="editTitle"></label>
+          <label>归属练习 <select id="editPractice"></select></label>
+        </div>
+        <textarea id="notes" placeholder="这次想练什么？哪里卡住了？下次改什么？"></textarea>
+        <div class="row between" style="margin-top:10px"><span class="row"><button class="primary" id="save">保存记录</button><button id="redo">重新分析</button><span class="hint">重新分析会用当前的模型和设置重跑转写，笔记和归属不变</span></span><button class="danger" id="del">删除这次录音</button></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2 id="histTitle">历史</h2>
+      <div class="grid2" id="trend"></div>
+      <div style="overflow-x:auto"><table id="hist"><thead><tr id="histHead"></tr></thead><tbody></tbody></table></div>
+      <div class="hint" id="histEmpty">还没有记录。</div>
+    </div>
+  </main>
+</div>
+
+<script>
+const $ = s => document.querySelector(s);
+const fmt = s => `${String(Math.floor(s/60)).padStart(2,'0')}:${String(Math.floor(s%60)).padStart(2,'0')}`;
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const pct = v => v == null ? '无' : Math.round(v*100) + '%';
+const SCEN = {presentation:'演示 / 汇报',meeting:'会议发言',interview:'面试',pitch:'电梯演讲',smalltalk:'闲聊 / 寒暄',other:'其他'};
+const FILLERS = {en:["um","uh","uhm","umm","hmm","mm","er","ah","eh","like","actually","basically","literally","okay","you know","i mean","kind of","sort of","i guess"],
+                 zh:["嗯","呃","啊","那个","然后","就是","其实","对吧","这个","怎么说"]};
+const HEDGES = {en:["maybe","perhaps","probably","possibly","hopefully","somewhat","a little","a bit","just","i think","i feel like","i believe","i guess","kind of","sort of","not sure","might","seems like"],
+                zh:["可能","大概","也许","应该","好像","我觉得","我感觉","差不多","有点"]};
+const BAND = {en:[130,160], zh:[180,260]};
+const STATUS = {covered:'讲到了', partial:'部分讲到', missed:'没讲'};
+
+let practices = [], sessionsAll = [], view = 'all', practice = null, current = null;
+const api = async (url, opts) => { const r = await fetch(url, opts); if (!r.ok) throw new Error((await r.json().catch(()=>({}))).detail || r.status); return r.json(); };
+const json = (method, body) => ({method, headers:{'content-type':'application/json'}, body: JSON.stringify(body)});
+const scenarioOptions = () => Object.entries(SCEN).map(([k,v]) => `<option value="${k}">${v}</option>`).join('');
+['#scenario','#nScenario','#pScenario'].forEach(s => $(s).innerHTML = scenarioOptions());
+const practiceTitle = id => (practices.find(p => p.id === id) || {}).title || '';
+
+// ---------- sidebar / views ----------
+async function loadPractices() {
+  [practices, sessionsAll] = await Promise.all([api('/api/practices'), api('/api/sessions')]);
+  renderSidebar();
+}
+function renderSidebar() {
+  const none = sessionsAll.filter(s => !s.practice_id).length;
+  const li = (v, t, n) => `<li data-v="${v}" class="${view===v?'active':''}"><span class="t">${esc(t)}</span><span class="cnt">${n ?? ''}</span></li>`;
+  $('#plist').innerHTML = li('all','全部记录',sessionsAll.length) + li('none','未分组',none) +
+    `<li class="sep">练习</li>` + practices.map(p => li(p.id, p.title, p.session_count)).join('') +
+    (practices.length ? '' : '<li class="sep">还没有练习，点下面新建</li>');
+  document.querySelectorAll('#plist li[data-v]').forEach(el => el.onclick = () => selectView(el.dataset.v));
+}
+async function selectView(v) {
+  view = v; practice = null; current = null;
+  $('#result').classList.add('hidden'); $('#newForm').classList.add('hidden'); $('#practiceCard').classList.add('hidden'); $('#shadowCard').classList.add('hidden'); stopShadow();
+  if (v === 'new') $('#newForm').classList.remove('hidden');
+  else if (v !== 'all' && v !== 'none') { practice = await api('/api/practices/' + v); renderPracticeCard(); }
+  renderSidebar(); updateRecTarget(); loadHistory();
+}
+function updateRecTarget() {
+  $('#recTarget').textContent = practice ? `录完自动归入「${practice.title}」，成为第 ${practice.sessions.length + 1} 遍。` + (practice.reference ? ' 可以一边放参照一边跟读。' : '') : (view === 'none' || view === 'all' ? '当前没有选练习，录音会放在未分组。' : '');
+}
+function renderPracticeCard() {
+  const p = practice;
+  $('#practiceCard').classList.remove('hidden');
+  $('#pTitle').value = p.title; $('#pScenario').value = p.scenario || 'other'; $('#pScript').value = p.script; $('#pNotes').value = p.notes || '';
+  $('#pMeta').textContent = `共 ${p.sessions.length} 遍 · 要点 ${p.points.length} 个 · 术语 ${p.terms.length} 个 · 建于 ${p.created_at.slice(0,10)}`;
+  if (p.scenario) $('#scenario').value = p.scenario;
+  renderShadow();
+}
+
+// ---------- shadowing ----------
+const RATES = [0.6,0.65,0.7,0.75,0.8,0.85,0.9,0.95,1];
+let shadowRate = 1, shadowRaf = null;
+try { shadowRate = Number(localStorage.getItem('shadowRate')) || 1; } catch (e) {}
+function stopShadow() { if (shadowRaf) cancelAnimationFrame(shadowRaf); shadowRaf = null; }
+function renderShadow() {
+  const p = practice, r = p.reference;
+  $('#shadowCard').classList.remove('hidden'); stopShadow();
+  if (!r) {
+    $('#shadowBox').innerHTML = `<div class="hint" style="margin-bottom:10px">上传一段参照音频（也可以是视频文件），会转写并按句对齐，然后可以调速、逐句跟读。</div>
+      <div class="row"><input type="file" id="refFile" accept="audio/*,video/*,.m4a,.mp3,.wav,.webm,.mp4,.mov"><label>语言 <select id="refLang"><option value="en">English</option><option value="zh">中文</option><option value="auto">自动</option></select></label></div>
+      <label class="lbl">文稿（可选）。填了就用它做字幕，并且在原文为空时自动填入原文；不填就用转写做字幕</label>
+      <textarea id="refText" placeholder="粘贴这段音频的文字"></textarea>
+      <div class="row" style="margin-top:10px"><button class="primary" id="refUpload">上传并分析</button><span class="hint" id="refStatus"></span></div>`;
+    $('#refUpload').onclick = uploadReference;
+    return;
+  }
+  const m = r.metrics, lang = m.language === 'zh' ? 'zh' : 'en', unit = lang === 'zh' ? '字' : '词';
+  const tiles = [
+    tile(m.wpm, unit+'/分', '参照语速', `参考区间 ${BAND[lang][0]} 到 ${BAND[lang][1]}`),
+    tile(m.articulation_wpm, unit+'/分', '去掉停顿后的语速', ''),
+    tile(fmt(m.duration_sec), '', '时长', `${m.word_count} ${unit}，开口 ${Math.round(m.speaking_sec)}s`),
+    tile(m.pauses.count, '次', '停顿 ≥0.5s', `最长 ${m.pauses.longest_sec}s · 静音占 ${Math.round(m.pauses.silence_ratio*100)}%`),
+    tile(m.fillers.per_minute, '次/分', '填充词', `共 ${m.fillers.count} 次`),
+    m.pitch.range_semitones != null ? tile(m.pitch.range_semitones, '半音', '音高起伏（粗略）', `中位 ${m.pitch.median_hz} Hz`) : '',
+  ].join('');
+  const sents = r.sentences.map(x => `<div class="sent ${x.matched === false ? 'unmatched' : ''}" data-i="${x.i}" data-start="${x.start}" title="点击从这句开始播放"><span class="t">${fmt(x.start)}</span><span>${esc(x.text)}</span></div>`).join('');
+  $('#shadowBox').innerHTML = `<div class="hint" style="margin-bottom:8px">参照：${esc(r.original_name || r.audio_file)} · ${r.language} · 字幕来自${r.subtitles_from === 'transcript' ? '文稿' : '自动转写'} · 上传于 ${r.uploaded_at.replace('T',' ')}</div>
+    <div class="tiles" style="margin-bottom:14px">${tiles}</div>
+    <audio id="refAudio" controls preload="metadata" src="/api/practices/${p.id}/reference/audio?ts=${encodeURIComponent(r.uploaded_at)}"></audio>
+    <div class="row" style="margin-top:10px"><label>速度</label><span class="rate" id="rate">${RATES.map(x => `<button data-r="${x}" class="${x===shadowRate?'on':''}">${x.toFixed(2)}×</button>`).join(' ')}</span></div>
+    <div class="hint" style="margin-top:6px">戴耳机跟着读，录音只会录到你的声音。点任意一句从该句开始播放，播放时当前句会高亮。</div>
+    <div class="sents" id="sents">${sents}</div>
+    <div class="row between" style="margin-top:10px"><button id="refRetime">用当前原文重新对齐字幕</button><button class="danger" id="refDelete">删除参照</button></div>`;
+  const audio = $('#refAudio');
+  const applyRate = () => { audio.playbackRate = shadowRate; if ('preservesPitch' in audio) audio.preservesPitch = true; };
+  audio.addEventListener('loadedmetadata', applyRate); applyRate();
+  document.querySelectorAll('#rate button').forEach(b => b.onclick = () => {
+    shadowRate = Number(b.dataset.r); try { localStorage.setItem('shadowRate', shadowRate); } catch (e) {}
+    document.querySelectorAll('#rate button').forEach(x => x.classList.toggle('on', x === b)); applyRate();
+  });
+  const rows = [...document.querySelectorAll('#sents .sent')];
+  rows.forEach(el => el.onclick = () => { audio.currentTime = Number(el.dataset.start); audio.play(); });
+  let activeIdx = -1;
+  const tick = () => {
+    const t = audio.currentTime, S = r.sentences;
+    let idx = -1;
+    for (let i = 0; i < S.length; i++) if (t >= S[i].start - 0.05 && (i === S.length - 1 || t < S[i+1].start)) { idx = i; break; }
+    if (idx !== activeIdx) {
+      activeIdx = idx; rows.forEach((el, i) => el.classList.toggle('active', i === idx));
+      if (idx >= 0) rows[idx].scrollIntoView({block:'nearest', behavior:'smooth'});
+    }
+    if (!audio.paused) shadowRaf = requestAnimationFrame(tick); else shadowRaf = null;
+  };
+  audio.addEventListener('play', () => { stopShadow(); tick(); });
+  audio.addEventListener('seeked', tick); audio.addEventListener('pause', tick);
+  $('#refRetime').onclick = async () => {
+    practice = await api('/api/practices/' + p.id + '/reference/transcript', json('PUT', {transcript: $('#pScript').value})); renderShadow();
+  };
+  $('#refDelete').onclick = async () => {
+    if (!confirm('删除这段参照音频？练习和录音都保留。')) return;
+    practice = await api('/api/practices/' + p.id + '/reference', {method:'DELETE'}); renderShadow(); loadHistory();
+  };
+}
+async function uploadReference() {
+  const f = $('#refFile').files[0]; if (!f) { $('#refStatus').textContent = '先选一个音频文件。'; return; }
+  const fd = new FormData(); fd.append('audio', f, f.name); fd.append('transcript', $('#refText').value); fd.append('language', $('#refLang').value);
+  $('#refUpload').disabled = true; $('#refStatus').textContent = '转写分析中，长音频要等一会…';
+  try { practice = await api('/api/practices/' + practice.id + '/reference', {method:'POST', body: fd}); renderPracticeCard(); await loadPractices(); loadHistory(); }
+  catch (e) { $('#refStatus').textContent = '失败：' + e.message; $('#refUpload').disabled = false; }
+}
+$('#newPractice').onclick = () => { $('#nTitle').value = ''; $('#nScript').value = ''; selectView('new'); setTimeout(() => $('#nTitle').focus(), 50); };
+$('#nCancel').onclick = () => selectView('all');
+$('#nCreate').onclick = async () => {
+  const p = await api('/api/practices', json('POST', {title: $('#nTitle').value, scenario: $('#nScenario').value, script: $('#nScript').value}));
+  await loadPractices(); selectView(p.id);
+};
+$('#pSave').onclick = async () => {
+  const body = {title: $('#pTitle').value, scenario: $('#pScenario').value, script: $('#pScript').value, notes: $('#pNotes').value};
+  practice = await api('/api/practices/' + practice.id, json('PATCH', body));
+  renderPracticeCard(); await loadPractices(); loadHistory();
+  if (current) { current = await api('/api/sessions/' + current.id); render(current); }
+  $('#pSave').textContent = '已保存'; setTimeout(() => $('#pSave').textContent = '保存练习', 1200);
+};
+$('#pDel').onclick = async () => {
+  if (!confirm(`删除练习「${practice.title}」？里面的 ${practice.sessions.length} 条录音会保留，变成未分组。`)) return;
+  await api('/api/practices/' + practice.id, {method:'DELETE'}); await loadPractices(); selectView('none');
+};
+
+// ---------- recording ----------
+let rec, chunks = [], stream, audioCtx, analyser, raf, t0, tick;
+$('#rec').onclick = async () => {
+  if (rec && rec.state === 'recording') return stop();
+  try { stream = await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true}}); }
+  catch (e) { $('#status').textContent = '拿不到麦克风权限：' + e.message; return; }
+  const mime = ['audio/webm;codecs=opus','audio/webm','audio/mp4'].find(m => MediaRecorder.isTypeSupported(m)) || '';
+  rec = new MediaRecorder(stream, mime ? {mimeType:mime} : {});
+  chunks = []; rec.ondataavailable = e => e.data.size && chunks.push(e.data); rec.onstop = upload; rec.start(250);
+  audioCtx = new AudioContext(); analyser = audioCtx.createAnalyser(); analyser.fftSize = 1024;
+  audioCtx.createMediaStreamSource(stream).connect(analyser);
+  const buf = new Float32Array(analyser.fftSize);
+  const meter = () => { analyser.getFloatTimeDomainData(buf); let s=0; for (const v of buf) s+=v*v;
+    $('#level').style.width = Math.min(100, Math.sqrt(s/buf.length)*400) + '%'; raf = requestAnimationFrame(meter); };
+  meter();
+  t0 = Date.now(); tick = setInterval(() => $('#timer').textContent = fmt((Date.now()-t0)/1000), 250);
+  $('#rec').textContent = '结束'; $('#rec').classList.add('on'); $('#status').textContent = '录音中…';
+};
+function stop() {
+  rec.stop(); stream.getTracks().forEach(t => t.stop()); cancelAnimationFrame(raf); clearInterval(tick);
+  audioCtx.close(); $('#level').style.width = 0; $('#rec').textContent = '开始录音'; $('#rec').classList.remove('on');
+}
+async function upload() {
+  const blob = new Blob(chunks, {type: rec.mimeType || 'audio/webm'});
+  const fd = new FormData();
+  fd.append('audio', blob, 'audio.' + ((rec.mimeType || '').includes('mp4') ? 'm4a' : 'webm'));
+  fd.append('language', $('#lang').value); fd.append('title', $('#title').value); fd.append('scenario', $('#scenario').value);
+  fd.append('practice_id', practice ? practice.id : '');
+  $('#status').textContent = '转写分析中，通常需要录音时长的一半左右…'; $('#rec').disabled = true;
+  try {
+    current = await api('/api/sessions', {method:'POST', body:fd});
+    $('#status').textContent = '完成。'; $('#title').value = '';
+    if (practice) practice = await api('/api/practices/' + practice.id);
+    await loadPractices(); updateRecTarget(); render(current); loadHistory();
+  } catch (e) { $('#status').textContent = '分析失败：' + e.message; }
+  $('#rec').disabled = false;
+}
+
+// ---------- session view ----------
+const tile = (v, u, k, n='') => `<div class="tile"><div class="v">${v}<span class="u">${u}</span></div><div class="k">${k}</div>${n?`<div class="n">${n}</div>`:''}</div>`;
+function render(s) {
+  const m = s.metrics, lang = m.language === 'zh' ? 'zh' : 'en', unit = lang==='zh'?'字':'词';
+  $('#result').classList.remove('hidden');
+  $('#rtitle').textContent = s.title;
+  const pt = s.practice_id ? ` · 练习「${practiceTitle(s.practice_id)}」` : '';
+  $('#rmeta').textContent = `${s.created_at.replace('T',' ')} · ${SCEN[s.scenario]||s.scenario||''} · ${m.language}${pt}`;
+  const band = BAND[lang];
+  const paceNote = m.wpm < band[0] ? `偏慢（参考 ${band[0]} 到 ${band[1]}）` : m.wpm > band[1] ? `偏快（参考 ${band[0]} 到 ${band[1]}）` : `在参考区间 ${band[0]} 到 ${band[1]} 内`;
+  const p = m.pauses, f = m.fillers;
+  $('#tiles').innerHTML = [
+    tile(m.wpm, unit+'/分', '语速', paceNote),
+    tile(m.articulation_wpm, unit+'/分', '去掉停顿后的语速', '反映说话时本身的快慢'),
+    tile(fmt(m.duration_sec), '', '时长', `${m.word_count} ${unit}，开口 ${Math.round(m.speaking_sec)}s`),
+    tile(f.per_minute, '次/分', '填充词', `共 ${f.count} 次，占 ${(f.ratio*100).toFixed(1)}%`),
+    tile(p.count, '次', '停顿 ≥0.5s', `最长 ${p.longest_sec}s · ≥2s 的 ${p.long_count} 次 · 静音占 ${Math.round(p.silence_ratio*100)}%`),
+    tile(m.hedges.count, '次', '弱化 / 犹豫用语', Object.keys(m.hedges.breakdown).slice(0,3).join(', ')),
+    tile(m.repeats, '次', '重复 / 卡壳', '连续重复的词或短语'),
+    tile((m.vocabulary.type_token_ratio*100).toFixed(0), '%', '词汇多样性', `${m.vocabulary.unique} 个不同的${unit}`),
+    tile(m.sentences.avg_len, unit, '平均句长', `最长一句 ${m.sentences.max_len} ${unit}`),
+    m.loudness.std_db != null ? tile(m.loudness.std_db, 'dB', '音量起伏', `平均 ${m.loudness.mean_db} dBFS`) : '',
+    m.pitch.range_semitones != null ? tile(m.pitch.range_semitones, '半音', '音高起伏（粗略）', `中位 ${m.pitch.median_hz} Hz，越小越像平铺直叙`) : '',
+    tile(m.low_confidence_words, unit, '转写没把握的词', '可能是吐字不清或专有名词'),
+  ].join('');
+  renderCoverage(s);
+  drawPace(m.pace_timeline, band, unit);
+  const chips = obj => Object.entries(obj).map(([k,v])=>`<span>${esc(k)} ×${v}</span>`).join('') || '<span class="hint">无</span>';
+  $('#wordsBox').innerHTML = `<div class="legend">填充词分布</div><div class="chips">${chips(f.breakdown)}</div>` +
+    `<div class="legend" style="margin-top:10px">弱化 / 犹豫用语</div><div class="chips">${chips(m.hedges.breakdown)}</div>` +
+    `<div class="legend" style="margin-top:10px">高频实词</div><div class="chips">${m.vocabulary.top_words.map(([k,v])=>`<span>${esc(k)} ×${v}</span>`).join('')}</div>`;
+  $('#transcript').innerHTML = highlight(m, lang);
+  $('#player').src = `/api/sessions/${s.id}/audio`;
+  $('#editTitle').value = s.title; $('#notes').value = s.notes || '';
+  $('#editPractice').innerHTML = `<option value="">未分组</option>` + practices.map(p => `<option value="${p.id}" ${p.id===s.practice_id?'selected':''}>${esc(p.title)}</option>`).join('');
+  drawStars(s.self_rating);
+  document.querySelectorAll('#hist tr').forEach(tr => tr.classList.toggle('active', tr.dataset.id === s.id));
+}
+function renderCoverage(s) {
+  const c = s.metrics.coverage;
+  if (!c) {
+    const hasPractice = !!s.practice_id;
+    $('#covCard').classList.toggle('hidden', !hasPractice);
+    $('#covBody').innerHTML = '<span class="hint">这个练习还没有原文。在上面粘贴原文并保存后，这里会显示要点覆盖。</span>';
+    return;
+  }
+  $('#covCard').classList.remove('hidden');
+  const k = c.counts;
+  const tiles = [
+    tile(pct(c.coverage), '', '要点覆盖率', `讲到 ${k.covered} · 部分 ${k.partial} · 没讲 ${k.missed}，共 ${c.points.length} 个要点`),
+    tile(c.terms.length ? `${c.terms_said}/${c.terms.length}` : '无', '', '术语说到', c.terms.length ? '名字、缩写、数字这类不该被换掉的词' : '原文里没有名字、缩写或数字'),
+    tile(c.expansion == null ? '无' : c.expansion + '×', '', '发散度', `原文 ${c.script_words} 词，你说了 ${c.transcript_words} 词`),
+    tile(pct(c.order), '', '顺序一致', '讲到的要点按原文顺序出现的比例'),
+  ].join('');
+  const points = c.points.map(p => `<div class="pt ${p.status}" title="${STATUS[p.status]} ${Math.round(p.score*100)}%">${esc(p.text)}` +
+    (p.misses.length && p.status !== 'covered' ? `<div class="miss">没提到：${p.misses.map(esc).join('，')}</div>` : '') + `</div>`).join('');
+  const terms = c.terms.length ? `<div class="legend" style="margin-top:14px">术语</div><div class="chips">${c.terms.map(t => `<span class="${t.said?'ok':'no'}">${esc(t.term)}${t.said?'':' ✕'}</span>`).join('')}</div>` : '';
+  const extra = c.extra.length ? `<div class="legend" style="margin-top:14px">原文之外的内容（发散的部分，不评好坏）</div><ul class="extra">${c.extra.map(x => `<li>${esc(x)}</li>`).join('')}</ul>` : '';
+  $('#covBody').innerHTML = `<div class="tiles" style="margin-bottom:14px">${tiles}</div>` +
+    `<div class="legend"><span class="pt covered" style="padding:1px 8px">讲到了</span><span class="pt partial" style="padding:1px 8px">部分讲到</span><span class="pt missed" style="padding:1px 8px">没讲</span> 判断看意思不看措辞，鼠标悬停看分数</div>` +
+    points + terms + extra;
+}
+function highlight(m, lang) {
+  const w = m.words; if (!w.length) return '<span class="hint">没有识别到语音。</span>';
+  let out = '';
+  for (let i = 0; i < w.length; i++) {
+    if (i) { const gap = w[i].start - w[i-1].end; out += gap >= 0.5 ? ` @@P${gap.toFixed(1)}@@ ` : (lang==='zh' || w[i].text.startsWith('-') ? '' : ' '); }
+    out += w[i].text;
+  }
+  out = esc(out);
+  const rxEsc = x => x.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+  const rx = list => new RegExp(lang==='zh' ? list.map(rxEsc).join('|') : '\\b(' + list.map(rxEsc).join('|') + ')\\b', 'gi');
+  out = out.replace(rx(HEDGES[lang]), x => `@@H@@${x}@@/H@@`);
+  if (lang === 'zh') {
+    out = out.replace(/(嗯|呃|怎么说|对吧)/g, '@@F@@$1@@/F@@');
+    out = out.replace(/(那个|然后|就是|其实|这个|啊)(?=[，。、？！,.!?;；:：\s]|\1|$)/g, '@@F@@$1@@/F@@');
+  } else {
+    out = out.replace(rx(FILLERS[lang]), x => `@@F@@${x}@@/F@@`);
+    out = out.replace(/(^|[.!?,;:]\s*)(so)\b/gi, '$1@@F@@$2@@/F@@');
+  }
+  return out.replace(/@@H@@/g,'<mark class="h">').replace(/@@\/H@@/g,'</mark>')
+            .replace(/@@F@@/g,'<mark class="f">').replace(/@@\/F@@/g,'</mark>')
+            .replace(/@@P([\d.]+)@@/g,'<span class="pause">停顿 $1s</span>');
+}
+
+// ---------- charts (single series, one hue) ----------
+function drawPace(tl, band, unit) {
+  const W=460, H=190, L=38, B=26, T=12, R=10;
+  if (!tl.length) { $('#pace').innerHTML = '<span class="hint">录音太短。</span>'; $('#paceHint').textContent = ''; return; }
+  const max = Math.max(band[1]*1.15, ...tl.map(d=>d.wpm));
+  const y = v => T + (H-T-B) * (1 - v/max), bw = (W-L-R)/tl.length;
+  let s = `<svg viewBox="0 0 ${W} ${H}" width="100%" style="max-width:${W}px">`;
+  s += `<rect x="${L}" y="${y(band[1])}" width="${W-L-R}" height="${y(band[0])-y(band[1])}" fill="#2f6fed" opacity=".08"/>`;
+  [0, band[0], band[1], Math.round(max)].forEach(v => s += `<line x1="${L}" x2="${W-R}" y1="${y(v)}" y2="${y(v)}" stroke="#e6e4dd"/><text x="${L-6}" y="${y(v)+4}" text-anchor="end">${v}</text>`);
+  tl.forEach((d,i) => { const x = L + i*bw + 2, h = y(0)-y(d.wpm);
+    s += `<rect x="${x}" y="${y(d.wpm)}" width="${bw-4}" height="${Math.max(h,0)}" rx="3" fill="#2f6fed"><title>${fmt(d.t)} 到 ${fmt(d.t+30)}: ${d.wpm} ${unit}/分</title></rect>`;
+    if (tl.length <= 12 || i % Math.ceil(tl.length/12) === 0) s += `<text x="${x+(bw-4)/2}" y="${H-8}" text-anchor="middle">${fmt(d.t)}</text>`; });
+  $('#pace').innerHTML = s + '</svg>';
+  $('#paceHint').textContent = `蓝色底为参考区间 ${band[0]} 到 ${band[1]}。同一段里忽快忽慢，通常是内容不熟或紧张。`;
+}
+function drawTrend(list, key, label, unit, labels, percent=false, ref=null) {
+  const W=460, H=150, L=38, B=22, T=12, R=10;
+  const vals = list.map(s => s[key] == null ? null : (percent ? s[key]*100 : s[key]));
+  const max = Math.max(1, ref ?? 0, ...vals.filter(v => v != null)) * 1.15;
+  const x = i => L + (list.length===1 ? (W-L-R)/2 : (W-L-R)*i/(list.length-1)), y = v => T + (H-T-B)*(1 - v/max);
+  let s = `<div><div class="legend">${label}</div><svg viewBox="0 0 ${W} ${H}" width="100%" style="max-width:${W}px">`;
+  [0, Math.round(max/2), Math.round(max)].forEach(v => s += `<line x1="${L}" x2="${W-R}" y1="${y(v)}" y2="${y(v)}" stroke="#e6e4dd"/><text x="${L-6}" y="${y(v)+4}" text-anchor="end">${v}</text>`);
+  if (ref != null) s += `<line x1="${L}" x2="${W-R}" y1="${y(ref)}" y2="${y(ref)}" stroke="#2f6fed" stroke-dasharray="4 4" opacity=".7"/><text x="${W-R}" y="${y(ref)-4}" text-anchor="end">参照 ${Math.round(ref*10)/10}</text>`;
+  const pts = vals.map((v,i) => v == null ? null : `${x(i)},${y(v)}`).filter(Boolean);
+  if (pts.length > 1) s += `<polyline fill="none" stroke="#2f6fed" stroke-width="2" points="${pts.join(' ')}"/>`;
+  vals.forEach((v,i) => { if (v == null) return;
+    s += `<circle cx="${x(i)}" cy="${y(v)}" r="4" fill="#2f6fed" stroke="#fff" stroke-width="2"><title>${labels[i]} ${esc(list[i].title||'')}: ${Math.round(v*10)/10}${unit}</title></circle>`; });
+  if (list.length <= 10) labels.forEach((t,i) => s += `<text x="${x(i)}" y="${H-6}" text-anchor="middle">${t}</text>`);
+  else s += `<text x="${L}" y="${H-6}">${labels[0]}</text><text x="${W-R}" y="${H-6}" text-anchor="end">${labels.at(-1)}</text>`;
+  return s + '</svg></div>';
+}
+
+// ---------- history ----------
+async function loadHistory() {
+  const inPractice = !!practice;
+  const list = await api('/api/sessions?practice=' + (view === 'new' ? 'none' : view));
+  $('#histTitle').textContent = inPractice ? `「${practice.title}」的记录` : view === 'none' ? '未分组的记录' : '全部记录';
+  $('#histEmpty').classList.toggle('hidden', list.length > 0);
+  const labels = list.map((s,i) => inPractice ? `第${i+1}遍` : s.created_at.slice(5,10));
+  const hasCov = inPractice && list.some(s => s.coverage != null);
+  const rm = inPractice && practice.reference ? practice.reference.metrics : null;
+  $('#trend').innerHTML = list.length ? drawTrend(list,'wpm','语速趋势','/分',labels,false,rm ? rm.wpm : null) + drawTrend(list,'fillers_per_minute','填充词/分钟趋势','次/分',labels,false,rm ? rm.fillers.per_minute : null) +
+    (inPractice ? drawTrend(list,'pauses_per_minute','停顿/分钟趋势','次/分',labels,false,rm ? rm.pauses.per_minute : null) : '') + (hasCov ? drawTrend(list,'coverage','要点覆盖率趋势','%',labels,true) : '') : '';
+  $('#histHead').innerHTML = (inPractice ? '<th>遍数</th>' : '') + '<th>时间</th><th>标题</th>' + (view==='all' ? '<th>练习</th>' : '') +
+    '<th>场景</th><th>时长</th><th>语速</th><th>填充词/分</th><th>停顿</th><th>弱化词</th>' + (inPractice ? '<th>要点覆盖</th>' : '') + '<th>自评</th>';
+  $('#hist tbody').innerHTML = list.map((s,i) => `<tr class="click${current&&current.id===s.id?' active':''}" data-id="${s.id}">` +
+    (inPractice ? `<td>第 ${i+1} 遍</td>` : '') + `<td>${s.created_at.replace('T',' ').slice(5,16)}</td><td>${esc(s.title||'')}</td>` +
+    (view==='all' ? `<td>${esc(practiceTitle(s.practice_id))}</td>` : '') +
+    `<td>${SCEN[s.scenario]||''}</td><td>${fmt(s.duration_sec)}</td><td>${s.wpm}</td><td>${s.fillers_per_minute}</td><td>${s.pause_count}（最长 ${s.longest_pause_sec}s）</td><td>${s.hedge_count}</td>` +
+    (inPractice ? `<td>${pct(s.coverage)}</td>` : '') + `<td>${s.self_rating?'★'.repeat(s.self_rating):''}</td></tr>`).reverse().join('');
+  document.querySelectorAll('#hist tr.click').forEach(tr => tr.onclick = async () => {
+    current = await api('/api/sessions/' + tr.dataset.id); render(current); $('#result').scrollIntoView({behavior:'smooth'});
+  });
+}
+function drawStars(v) { $('#stars').innerHTML = [1,2,3,4,5].map(i => `<button class="${v>=i?'on':''}" data-v="${i}">★</button>`).join('');
+  document.querySelectorAll('#stars button').forEach(b => b.onclick = () => { current.self_rating = +b.dataset.v; drawStars(current.self_rating); }); }
+$('#save').onclick = async () => {
+  const moved = ($('#editPractice').value || null) !== (current.practice_id || null);
+  const body = {title: $('#editTitle').value, notes: $('#notes').value, self_rating: current.self_rating, practice_id: $('#editPractice').value || null};
+  current = await api('/api/sessions/' + current.id, json('PATCH', body));
+  if (moved) { await loadPractices(); if (practice) { practice = await api('/api/practices/' + practice.id); renderPracticeCard(); updateRecTarget(); } }
+  render(current); loadHistory();
+  $('#save').textContent = '已保存'; setTimeout(()=>$('#save').textContent='保存记录', 1200);
+};
+$('#redo').onclick = async () => {
+  $('#redo').disabled = true; $('#redo').textContent = '分析中…';
+  try { current = await api('/api/sessions/' + current.id + '/reanalyze', json('POST', {language: $('#lang').value === 'auto' ? 'auto' : current.language}));
+    render(current); loadHistory(); }
+  catch (e) { alert('重新分析失败：' + e.message); }
+  $('#redo').disabled = false; $('#redo').textContent = '重新分析';
+};
+$('#del').onclick = async () => {
+  if (!confirm('删除这次录音和分析？')) return;
+  await api('/api/sessions/' + current.id, {method:'DELETE'}); current = null; $('#result').classList.add('hidden');
+  await loadPractices(); if (practice) { practice = await api('/api/practices/' + practice.id); renderPracticeCard(); updateRecTarget(); } loadHistory();
+};
+
+// ---------- boot ----------
+(async function pollModel() {
+  try { const c = await api('/api/config');
+    const st = Object.entries(c.models || {}).map(([n, ok]) => `${n}${ok ? ' 已就绪' : ' 加载中'}`).join('，');
+    const allOk = Object.values(c.models || {}).every(Boolean);
+    $('#model').textContent = `模型：${st}` + (allOk ? '' : '。首次使用要下载模型，可以先录音');
+    if (!allOk) setTimeout(pollModel, 3000);
+  } catch (e) { setTimeout(pollModel, 2000); }
+})();
+(async () => {
+  await loadPractices();
+  const id = location.hash.slice(1);           // #<session id> opens that session, #practice=<id> opens a practice
+  if (id.startsWith('practice=')) { try { await selectView(id.slice(9)); return; } catch (e) {} }
+  if (id) { try { const s = await api('/api/sessions/' + id); await selectView(s.practice_id || 'all'); current = s; render(s); return; } catch (e) {} }
+  selectView('all');
+})();
+</script>
+</body>
+</html>
