@@ -117,8 +117,9 @@ for lang in en zh; do
     sips -Z "$size" "$f" --out "$OUT/$lang/$name" >/dev/null
   done
   # Moving pictures: a folder of frames each, 12 a second (83 ms), drawn at the size shown.
-  # Lossy at quality 92: below about 90 the encoder leaves pixels that changed by a few
-  # levels as they were, and the halo's soft gradient shows the edges of those patches.
+  # Lossy at quality 92, which takes a change of 2 levels or less for no change. The harness
+  # holds such changes back in the frames (FrameHold in RenderHarness.swift), so the halo
+  # shows no patch edges; change the two together.
   for frames in "$WORK/png-$lang"/*/; do
     [ -d "$frames" ] || continue
     name=$(basename "$frames")
