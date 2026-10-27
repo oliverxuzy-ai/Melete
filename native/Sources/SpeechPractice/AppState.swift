@@ -104,6 +104,8 @@ final class AppState {
     /// behind the overview, so walking between places never tears a view down.
     var studio: Space = .shadow
     var tray: Tray?
+    /// The settings section to show when the settings tray opens next ("update" from the menu).
+    var settingsSection: String?
     /// Bumped to rebuild the tray layer from scratch; see `closeTray`.
     var trayEpoch = 0
     /// The tray to return to when one tray opened another (a practice opening one of its recordings).

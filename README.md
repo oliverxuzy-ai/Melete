@@ -71,7 +71,7 @@ So Melete opens on today's next exercise. Press <kbd>Return</kbd>, a water clock
 
 ### Private by design
 
-Audio, transcripts and statistics are stored only in `~/Library/Application Support/SpeechPractice/`. Your recordings are not uploaded unless you turn on listening notes; then each take is sent through OpenRouter to the model you chose, routed only to providers that neither store nor train on requests. Otherwise Melete goes online only to download the speech models once, to fetch daily clip audio with yt-dlp, and, if you turn them on, to send phone reminders through ntfy or ask Claude to pick a clip.
+Audio, transcripts and statistics are stored only in `~/Library/Application Support/SpeechPractice/`. Your recordings are not uploaded unless you turn on listening notes; then each take is sent through OpenRouter to the model you chose, routed only to providers that neither store nor train on requests. Otherwise Melete goes online only to download the speech models once, to fetch daily clip audio with yt-dlp, to check GitHub for a new version of the app, and, if you turn them on, to send phone reminders through ntfy or ask Claude to pick a clip.
 
 ## Install
 
@@ -87,6 +87,8 @@ Audio, transcripts and statistics are stored only in `~/Library/Application Supp
    ```sh
    brew install yt-dlp ffmpeg
    ```
+
+After that Melete keeps itself up to date. When a new release is out it says so at the top of the window; **Update and restart** downloads it, checks it against its published checksum and replaces the copy in Applications, with no Gatekeeper prompt. If you are in the middle of a take, it waits and goes in when you restart or quit. Check by hand or turn the check off in **Settings → Updates** (or **Melete → Check for Updates…**). After an update macOS may ask for the microphone again, because each build is signed on its own.
 
 | Requirement | |
 |---|---|
@@ -173,7 +175,7 @@ cd Melete
 ./build_native.sh --install  # also copies it to /Applications (quit the app first)
 ```
 
-`--install` replaces an older `SpeechPractice.app`. The bundle ID is unchanged, so history, exercises and settings carry over.
+`--install` replaces an older `SpeechPractice.app`. The bundle ID is unchanged, so history, exercises and settings carry over. A copy built this way doesn't check for updates; only the release builds know where to look.
 
 <details>
 <summary><b>Development mode and debug flags</b></summary>

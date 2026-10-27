@@ -23,6 +23,8 @@ xattr -dr com.apple.quarantine /Applications/Melete.app
 
 The first launch downloads the Whisper speech model (about 500 MB). For daily clips, also run `brew install yt-dlp ffmpeg`.
 
+Once installed, Melete offers new versions itself and installs them in one click (**Settings → Updates**).
+
 EOF
 
 if [ -z "$previous" ]; then

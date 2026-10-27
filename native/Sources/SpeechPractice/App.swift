@@ -27,6 +27,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             stage?.saveForQuit()
             state?.activity.saveBacklog()
             state?.server.stop()
+            // A downloaded update goes in now, so the next launch is the new version.
+            Updater.shared.installOnQuit()
         }
     }
 }
@@ -41,6 +43,9 @@ struct SpeechPracticeApp: App {
     @AppStorage("globalHotkey") private var hotkey = true
 
     init() {
+        let args = CommandLine.arguments
+        if args.contains("--version") { print("\(AppVersion.current) (\(AppVersion.build))"); exit(0) }
+        if let i = args.firstIndex(of: "--updateprobe"), args.count > i + 2 { UpdateProbe.run(feed: args[i + 1], pretend: args[i + 2]) }
         if CommandLine.arguments.contains("--selftest") { SpeechPracticeApp.selftest() }
         // `--lang en|zh` shows one language for this run without changing the setting.
         if let i = CommandLine.arguments.firstIndex(of: "--lang"), CommandLine.arguments.count > i + 1,
@@ -118,6 +123,12 @@ struct SpeechPracticeApp: App {
         .windowStyle(.hiddenTitleBar)
         .windowBackgroundDragBehavior(.enabled)
         .commands {
+            CommandGroup(after: .appInfo) {
+                Button(L("检查更新…", "Check for Updates…")) {
+                    NotificationCenter.default.post(name: .openSettings, object: "update")
+                    Task { await Updater.shared.check(manual: true) }
+                }
+            }
             CommandGroup(replacing: .appSettings) {
                 Button(L("设置…", "Settings…")) { NotificationCenter.default.post(name: .openSettings, object: nil) }
                     .keyboardShortcut(",", modifiers: .command)
@@ -175,6 +186,7 @@ struct SpeechPracticeApp: App {
             else { await E2E.run(state: state, recorder: recorder, stage: stage) }
             return
         }
+        Updater.shared.start()
         await state.boot()
         await restoreReminder()
         // `--snapshot <png>` draws the real window and quits.

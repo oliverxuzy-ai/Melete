@@ -1,6 +1,10 @@
 # Builds Melete.app on every push to main and publishes it as a GitHub Release.
 # Pull requests get the same build as a downloadable workflow artifact, with no release.
 #
+# Each release also carries latest.json (.github/scripts/update-manifest.sh). The builds made
+# here read it from releases/latest to offer the next version and install it (Updater.swift);
+# builds made on a Mac with build_native.sh have no feed address and never check.
+#
 # Versioning (see .github/scripts/next-version.sh):
 #   every push to main      -> patch   2.0.0 -> 2.0.1
 #   a "feat:" commit         -> minor   2.0.1 -> 2.1.0
@@ -89,6 +93,8 @@ jobs:
         run: |
           plutil -replace CFBundleShortVersionString -string "$VERSION" native/Resources/Info.plist
           plutil -replace CFBundleVersion -string "$BUILD" native/Resources/Info.plist
+          # Where the app looks for newer versions.
+          plutil -replace MeleteUpdateFeed -string "https://github.com/$GITHUB_REPOSITORY/releases/latest/download/latest.json" native/Resources/Info.plist
 
       - name: Build
         run: ./build_native.sh
@@ -115,7 +121,31 @@ jobs:
           done
           ditto -c -k --sequesterRsrc --keepParent dist/Melete.app out/Melete.zip
           (cd out && shasum -a 256 Melete.dmg Melete.zip > SHA256SUMS.txt && cat SHA256SUMS.txt)
+          .github/scripts/update-manifest.sh "$VERSION" "$BUILD" out/Melete.zip > out/latest.json
+          cat out/latest.json
           du -sh dist/Melete.app out/*
+
+      # Released builds update themselves from latest.json. Run every step of that on a copy of
+      # this build posing as an older version, against a feed served on this runner: read it,
+      # download, refuse a changed file, check the checksum, unpack, and swap the copy in.
+      # Then run the copy that was swapped in.
+      - name: Check that the app can update itself
+        run: |
+          feed="$RUNNER_TEMP/feed" apps="$RUNNER_TEMP/apps" port=8799
+          mkdir -p "$feed" "$apps"
+          cp out/Melete.zip "$feed/"
+          python3 -c 'import json, sys; m = json.load(open(sys.argv[1])); m["url"] = sys.argv[3]; json.dump(m, open(sys.argv[2], "w"), indent=2)' \
+            out/latest.json "$feed/latest.json" "http://127.0.0.1:$port/Melete.zip"
+          python3 -m http.server "$port" --bind 127.0.0.1 --directory "$feed" >/dev/null 2>&1 &
+          trap 'kill $!' EXIT
+          for _ in $(seq 50); do curl -sf "http://127.0.0.1:$port/latest.json" >/dev/null && break; sleep 0.2; done
+          ditto dist/Melete.app "$apps/Melete.app"
+          before=$(stat -f %i "$apps/Melete.app")
+          "$apps/Melete.app/Contents/MacOS/SpeechPractice" --updateprobe "http://127.0.0.1:$port/latest.json" 0.0.1
+          [ "$(stat -f %i "$apps/Melete.app")" != "$before" ] || { echo "the copy was not replaced"; exit 1; }
+          ran=$("$apps/Melete.app/Contents/MacOS/SpeechPractice" --version)
+          echo "the copy swapped in runs and says: $ran"
+          [ "$ran" = "$VERSION ($BUILD)" ] || { echo "expected $VERSION ($BUILD)"; exit 1; }
 
       - uses: actions/upload-artifact@v6
         with:
@@ -134,6 +164,7 @@ jobs:
       contents: write # create the tag and the release
     env:
       VERSION: ${{ needs.version.outputs.version }}
+      BUILD: ${{ needs.version.outputs.build }}
       TAG: ${{ needs.version.outputs.tag }}
       PREVIOUS: ${{ needs.version.outputs.previous }}
       GH_TOKEN: ${{ github.token }}
@@ -150,7 +181,9 @@ jobs:
       - name: Publish ${{ env.TAG }}
         run: |
           .github/scripts/release-notes.sh "$TAG" "$PREVIOUS" > notes.md
-          gh release create "$TAG" out/Melete.dmg out/Melete.zip out/SHA256SUMS.txt \
+          # Again with the full history, so the app can show what changed.
+          .github/scripts/update-manifest.sh "$VERSION" "$BUILD" out/Melete.zip "$PREVIOUS" > out/latest.json
+          gh release create "$TAG" out/Melete.dmg out/Melete.zip out/SHA256SUMS.txt out/latest.json \
             --target "$GITHUB_SHA" \
             --title "Melete $VERSION" \
             --notes-file notes.md

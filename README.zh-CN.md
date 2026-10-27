@@ -71,7 +71,7 @@
 
 ### 隐私
 
-录音、转写和统计只存在 `~/Library/Application Support/SpeechPractice/`。只有打开听感点评时录音才会上传：每段录音经 OpenRouter 发给你选的模型，而且只路由到不保存、不拿请求训练的服务商。除此之外，Melete 只在这几种情况下联网：第一次下载语音模型；用 yt-dlp 下载每日片段的音频；以及你打开了的话，通过 ntfy 推送手机提醒、请 Claude 挑片段。
+录音、转写和统计只存在 `~/Library/Application Support/SpeechPractice/`。只有打开听感点评时录音才会上传：每段录音经 OpenRouter 发给你选的模型，而且只路由到不保存、不拿请求训练的服务商。除此之外，Melete 只在这几种情况下联网：第一次下载语音模型；用 yt-dlp 下载每日片段的音频；到 GitHub 查有没有新版本；以及你打开了的话，通过 ntfy 推送手机提醒、请 Claude 挑片段。
 
 ## 安装
 
@@ -87,6 +87,8 @@
    ```sh
    brew install yt-dlp ffmpeg
    ```
+
+之后 Melete 会自己保持最新。有新版本时窗口顶部会提示，点 **更新并重启**，它会下载新版本、核对发布时的校验和，再替换“应用程序”里的旧版本，不会再弹出 Gatekeeper 提示。如果你正在录音，新版本会先等着，下次重启或退出时再装上。在 **设置 → 更新** 里可以手动检查或关掉自动检查（菜单 **Melete → 检查更新…** 也行）。因为每次构建都是单独签名的，更新后 macOS 可能会再问一次麦克风权限。
 
 | 要求 | |
 |---|---|
@@ -173,7 +175,7 @@ cd Melete
 ./build_native.sh --install  # 同时装到 /Applications（先退出 App）
 ```
 
-`--install` 会替换旧的 SpeechPractice.app。Bundle ID 没变，历史记录、练习和设置都会保留。
+`--install` 会替换旧的 SpeechPractice.app。Bundle ID 没变，历史记录、练习和设置都会保留。这样构建出来的版本不检查更新，只有发布的版本知道去哪里查。
 
 <details>
 <summary><b>开发模式和调试参数</b></summary>
