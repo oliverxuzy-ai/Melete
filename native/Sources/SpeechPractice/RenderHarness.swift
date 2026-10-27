@@ -76,7 +76,7 @@ enum RenderHarness {
 
         for (name, width, height, make) in pages {
             if let only, !only.contains(name) { continue }
-            for scheme in [ColorScheme.light, .dark] {
+            for scheme in schemes {
                 log("render: \(name) \(scheme)")
                 draw(make(), width: width, height: height, scheme: scheme, scale: 2,
                      state: state, recorder: recorder, stage: stage,
@@ -91,7 +91,7 @@ enum RenderHarness {
     }
 
     static func draw(_ view: AnyView, width: CGFloat, height: CGFloat?, scheme: ColorScheme, scale: CGFloat,
-                     clock: Date? = nil, line: Double? = nil,
+                     clock: Date? = nil, line: Double? = nil, hold: FrameHold? = nil,
                      state: AppState, recorder: Recorder, stage: StageModel, to url: URL) {
         let content = view
             .environment(state).environment(recorder).environment(stage)
@@ -104,17 +104,66 @@ enum RenderHarness {
         let r = ImageRenderer(content: content)
         r.scale = scale
         r.proposedSize = ProposedViewSize(width: width, height: height)
-        if let img = r.nsImage, let tiff = img.tiffRepresentation, let rep = NSBitmapImageRep(data: tiff),
-           let png = rep.representation(using: .png, properties: [:]) {
+        if let hold {
+            try? pngData(r.cgImage, holding: hold)?.write(to: url)
+        } else if let img = r.nsImage, let tiff = img.tiffRepresentation, let rep = NSBitmapImageRep(data: tiff),
+                  let png = rep.representation(using: .png, properties: [:]) {
             try? png.write(to: url)
+        }
+    }
+
+    /// A frame of a moving picture as sRGB PNG data, after `hold` has held back its small changes.
+    static func pngData(_ image: CGImage?, holding hold: FrameHold) -> Data? {
+        guard let image, let space = CGColorSpace(name: CGColorSpace.sRGB),
+              let ctx = CGContext(data: nil, width: image.width, height: image.height, bitsPerComponent: 8,
+                                  bytesPerRow: 0, space: space,
+                                  bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue) else { return nil }
+        ctx.draw(image, in: CGRect(x: 0, y: 0, width: image.width, height: image.height))
+        guard let data = ctx.data else { return nil }
+        hold.apply(data.assumingMemoryBound(to: UInt8.self), count: ctx.bytesPerRow * ctx.height)
+        guard let held = ctx.makeImage() else { return nil }
+        return NSBitmapImageRep(cgImage: held).representation(using: .png, properties: [:])
+    }
+
+    /// Keeps the frames of a moving picture in step with what the WebP encoder will show.
+    /// img2webp (quality 92 in render.sh) treats a pixel whose channels all moved by 2 or less
+    /// since the previous frame as unchanged and leaves the old one on screen. The halo fades
+    /// in and out a level or two per frame at its edge, so those old pixels piled up behind
+    /// faint rectangles. Here such a pixel keeps the value it had in the frame before, so the
+    /// encoder and the viewer agree on it; no pixel is more than 2 levels behind.
+    final class FrameHold {
+        let threshold: Int
+        private var shown: [UInt8] = []
+
+        init(threshold: Int) { self.threshold = threshold }
+
+        /// `px` holds `count` bytes, four per pixel; small changes from the last frame are undone in place.
+        func apply(_ px: UnsafeMutablePointer<UInt8>, count: Int) {
+            guard shown.count == count else {
+                shown = Array(UnsafeBufferPointer(start: px, count: count))
+                return
+            }
+            let t = threshold
+            shown.withUnsafeMutableBufferPointer { s in
+                var i = 0
+                while i + 3 < count {
+                    if abs(Int(px[i]) - Int(s[i])) > t || abs(Int(px[i + 1]) - Int(s[i + 1])) > t
+                        || abs(Int(px[i + 2]) - Int(s[i + 2])) > t || abs(Int(px[i + 3]) - Int(s[i + 3])) > t {
+                        for k in i..<(i + 4) { s[k] = px[k] }
+                    } else {
+                        for k in i..<(i + 4) { px[k] = s[k] }
+                    }
+                    i += 4
+                }
+            }
         }
     }
 
     /// The shadow studio mid-take as a loop of frames, for the README: a voice swells the halo
     /// and raises waves on the water, and the subtitles move along with it. The halo turns once
     /// in 15 s and every rhythm of the voice divides 15 s, so the loop closes on itself; only
-    /// the clock and the subtitles start over. Frames go to `<name>-light/0000.png` and
-    /// `<name>-dark/`; render.sh joins them into an animated WebP.
+    /// the clock and the subtitles start over. Frames go to `<name>-light/0000.png` (and
+    /// `<name>-dark/`); render.sh joins them into an animated WebP.
     static func shadowLoop(name: String, stage: StageModel, recorder: Recorder, state: AppState, into dir: URL) async {
         guard await shadowStage(stage: stage, recorder: recorder, state: state) != nil,
               let sentences = stage.practice?.reference?.sentences, !sentences.isEmpty else {
@@ -153,10 +202,11 @@ enum RenderHarness {
 
         let origin = Date(timeIntervalSinceReferenceDate: 0)
         let pace = [2.0, 3, 5, 4, 1, 0, 2, 4, 6, 5, 3, 1, 0, 2, 3]
-        for scheme in [ColorScheme.light, .dark] {
+        for scheme in schemes {
             let out = dir.appendingPathComponent("\(name)-\(scheme == .light ? "light" : "dark")")
             try? FileManager.default.createDirectory(at: out, withIntermediateDirectories: true)
             log("render: \(name) \(scheme), \(Int(fps * seconds)) frames")
+            let hold = FrameHold(threshold: 2)
             // The meter runs one loop ahead of the first frame, so the last frame leads into it.
             recorder.meter.reset()
             var metered = -seconds
@@ -171,7 +221,7 @@ enum RenderHarness {
                 stage.activeSentence = first + changes.filter { $0 <= t }.count
                 let line = Double(first) + changes.reduce(0) { $0 + ease((t - $1) / 0.6) }
                 draw(AnyView(window(state: state, space: .shadow, height: 840)), width: 1200, height: 840,
-                     scheme: scheme, scale: 4.0 / 3, clock: now, line: line,
+                     scheme: scheme, scale: 4.0 / 3, clock: now, line: line, hold: hold,
                      state: state, recorder: recorder, stage: stage,
                      to: out.appendingPathComponent(String(format: "%04d.png", i)))
             }
@@ -179,6 +229,12 @@ enum RenderHarness {
         recorder.meter.reset()
         recorder.elapsed = startElapsed
         stage.activeSentence = first
+    }
+
+    /// Light and dark, or only what RENDER_SCHEMES names (`light`, `dark`).
+    static var schemes: [ColorScheme] {
+        let named = ProcessInfo.processInfo.environment["RENDER_SCHEMES"].map { Set($0.split(separator: ",").map(String.init)) }
+        return [ColorScheme.light, .dark].filter { named?.contains($0 == .light ? "light" : "dark") ?? true }
     }
 
     static func log(_ s: String) {
