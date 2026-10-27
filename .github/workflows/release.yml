@@ -1,0 +1,144 @@
+# Builds Melete.app on every push to main and publishes it as a GitHub Release.
+# Pull requests get the same build as a downloadable workflow artifact, with no release.
+#
+# Versioning (see .github/scripts/next-version.sh):
+#   every push to main      -> patch   2.0.0 -> 2.0.1
+#   a "feat:" commit         -> minor   2.0.1 -> 2.1.0
+#   "BREAKING CHANGE" / "!:" -> major   2.1.0 -> 3.0.0
+#   "#minor" / "#major" in any commit message, or "Run workflow" with a bump, does the same.
+#   Raising CFBundleShortVersionString in native/Resources/Info.plist releases exactly that version.
+name: Build & Release
+
+on:
+  push:
+    branches: [main]
+    paths-ignore: # docs-only changes don't need a new build
+      - "**.md"
+      - "docs/**"
+      - ".github/assets/**"
+      - "LICENSE"
+  pull_request:
+    paths-ignore:
+      - "**.md"
+      - "docs/**"
+      - ".github/assets/**"
+      - "LICENSE"
+  workflow_dispatch:
+    inputs:
+      bump:
+        description: Version bump (auto reads the commit messages)
+        type: choice
+        options: [auto, patch, minor, major]
+        default: auto
+
+# One release at a time, in push order. Pull request runs replace each other.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && github.head_ref || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+jobs:
+  version:
+    name: Next version
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.next.outputs.version }}
+      tag: ${{ steps.next.outputs.tag }}
+      build: ${{ steps.next.outputs.build }}
+      previous: ${{ steps.next.outputs.previous }}
+      skip: ${{ steps.next.outputs.skip }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0 # tags and commit messages decide the version
+      - id: next
+        env:
+          BUMP: ${{ inputs.bump || 'auto' }}
+        run: .github/scripts/next-version.sh "$BUMP" | tee -a "$GITHUB_OUTPUT"
+
+  build:
+    name: Build Melete.app
+    needs: version
+    if: needs.version.outputs.skip != 'true'
+    runs-on: macos-26 # Apple Silicon, Xcode 26: the app targets macOS 26
+    timeout-minutes: 60
+    env:
+      VERSION: ${{ needs.version.outputs.version }}
+      BUILD: ${{ needs.version.outputs.build }}
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+          cache-dependency-glob: requirements.txt
+
+      - name: Toolchain
+        run: |
+          sw_vers
+          xcodebuild -version
+          swift --version
+
+      - name: Stamp version ${{ env.VERSION }} (${{ env.BUILD }})
+        run: |
+          plutil -replace CFBundleShortVersionString -string "$VERSION" native/Resources/Info.plist
+          plutil -replace CFBundleVersion -string "$BUILD" native/Resources/Info.plist
+
+      - name: Build
+        run: ./build_native.sh
+
+      - name: Package DMG and zip
+        run: |
+          mkdir -p out stage
+          ditto dist/Melete.app stage/Melete.app
+          ln -s /Applications stage/Applications
+          # hdiutil sometimes fails with "Resource busy" on hosted runners; retry a few times.
+          for attempt in 1 2 3 4 5; do
+            hdiutil create -volname Melete -srcfolder stage -format UDZO -ov out/Melete.dmg && break
+            [ "$attempt" = 5 ] && exit 1
+            sleep $((attempt * 5))
+          done
+          ditto -c -k --sequesterRsrc --keepParent dist/Melete.app out/Melete.zip
+          (cd out && shasum -a 256 Melete.dmg Melete.zip > SHA256SUMS.txt && cat SHA256SUMS.txt)
+          du -sh dist/Melete.app out/*
+
+      - uses: actions/upload-artifact@v6
+        with:
+          name: Melete-${{ env.VERSION }}
+          path: out/
+          compression-level: 0 # already compressed
+          retention-days: 14
+          if-no-files-found: error
+
+  release:
+    name: Publish release
+    needs: [version, build]
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # create the tag and the release
+    env:
+      VERSION: ${{ needs.version.outputs.version }}
+      TAG: ${{ needs.version.outputs.tag }}
+      PREVIOUS: ${{ needs.version.outputs.previous }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0 # the notes list commits since the previous tag
+
+      - uses: actions/download-artifact@v7
+        with:
+          name: Melete-${{ env.VERSION }}
+          path: out
+
+      - name: Publish ${{ env.TAG }}
+        run: |
+          .github/scripts/release-notes.sh "$TAG" "$PREVIOUS" > notes.md
+          gh release create "$TAG" out/Melete.dmg out/Melete.zip out/SHA256SUMS.txt \
+            --target "$GITHUB_SHA" \
+            --title "Melete $VERSION" \
+            --notes-file notes.md
+          echo "### Released [Melete $VERSION](https://github.com/$GITHUB_REPOSITORY/releases/tag/$TAG)" >> "$GITHUB_STEP_SUMMARY"

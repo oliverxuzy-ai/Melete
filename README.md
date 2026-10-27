@@ -1,107 +1,236 @@
-# Melete 口述练习
+<div align="center">
 
-给 business communication 练习用的本地 Mac App。每天给你准备好一到两段演讲片段和一道为你定制的即兴题，按一个键就开始录，本地 Whisper 转写，算出语速、停顿、填充词、音高起伏，再给一句最该改的点评。所有录音和数据只在本机。
+<img src=".github/assets/icon.png" width="128" height="128" alt="Melete app icon: a glass water clock, half full of Egyptian-blue water">
 
-设计语言和每个决定的理由见 [docs/DESIGN.md](docs/DESIGN.md)。
+# Melete
 
-## 安装
+**A daily speaking studio for your Mac.**<br>
+Shadow great speakers, talk through your own topics, and get one clear note on what to fix next.<br>
+Recordings, transcripts and stats never leave your Mac.
 
-```sh
-./build_native.sh --install
-```
+[**Download for macOS**](https://github.com/oliverxuzy-ai/Melete/releases/latest/download/Melete.dmg) · [Features](#features) · [How it works](#how-it-works) · [Design](docs/DESIGN.md) · [简体中文](README.zh-CN.md)
 
-会打包 `dist/Melete.app` 并装到 /Applications，替换旧的 SpeechPractice.app。Bundle ID 没变，历史记录、练习和设置都会保留。App 正在运行时脚本会拒绝安装，先退出再装。需要 Xcode 26。
+[![Latest release](https://img.shields.io/github/v/release/oliverxuzy-ai/Melete?style=flat-square&color=2C4AA0&label=release)](https://github.com/oliverxuzy-ai/Melete/releases/latest)
+[![Downloads](https://img.shields.io/github/downloads/oliverxuzy-ai/Melete/total?style=flat-square&color=AD7D21)](https://github.com/oliverxuzy-ai/Melete/releases)
+[![Build](https://img.shields.io/github/actions/workflow/status/oliverxuzy-ai/Melete/release.yml?branch=main&style=flat-square&label=build)](https://github.com/oliverxuzy-ai/Melete/actions/workflows/release.yml)
+![macOS 26+](https://img.shields.io/badge/macOS-26%2B-1A1916?style=flat-square&logo=apple)
+![Apple Silicon](https://img.shields.io/badge/Apple%20Silicon-arm64-1A1916?style=flat-square)
+![Local first](https://img.shields.io/badge/data-stays%20on%20your%20Mac-3B7650?style=flat-square)
 
-每日片段需要本机有 yt-dlp 和 ffmpeg：
+</div>
 
-```sh
-brew install yt-dlp ffmpeg
-```
+> *Μελέτη* is Greek for "practice". Melete was also the oldest of the three original Muses: Melete for practice, Mneme for memory, Aoide for voice. Those are the three things this app is for: practice every day, remember the key points, and train your voice.
 
-## 每天怎么用
+## Why Melete
 
-一个窗口，三个地方，顶部中间的胶囊切换：
+Most speaking feedback is the same few lines: slow down, speak up, fewer "um"s, vary your tone. Knowing that is easy. Practicing it every day is the hard part, and every bit of friction is a reason to skip a day.
 
-- **总览**：本周的桂冠居中，左边是自己讲的表现走势（语速、填充词、音高起伏、要点覆盖），右边是节奏（这周每天几分钟、连续天数、下一场要讲的会）。下面是两扇门（跟读、主题），再往下是每一次的结论、周小结和这一年的练习点阵。
-- **跟读**：先听别人怎么讲，再跟着讲，或者听完用自己的话复述。讲台在中间，底下的素材架放今天的片段和片段库。左边按钮只管原文（听原文、暂停、继续听），中间按钮只管录你（开始跟读或开始复述）；原文放完不会自己开录。点左边原文的任意一句，就从那一句开始听。用扬声器外放时，跟读录音期间原声不放（免得麦克风把原声录进去），字幕跟着你的声音走：本机实时识别你读到哪个词（用最快的听写识别器，约 0.3 秒），一句还剩一个词时就滚到下一句，按你自己的速度读；跟丢了点一下你读到的那句。戴耳机时原声在耳机里同步播放，字幕跟原声。
-- **主题**：围绕一个题目、讲稿或要讲的会，自己讲。素材架放今天的即兴题、讲稿和议程。
+So Melete opens on today's next exercise. Press <kbd>Return</kbd>, a water clock fills for three seconds, and you're recording. When you stop, Whisper transcribes on your Mac and you get one sentence on the most important thing to change, measured against your own recent baseline rather than a generic norm.
 
-1. 打开 App 停在总览。按回车，直接进入今天下一项所在的那一边，水钟注满三秒后自动开始录音。
-2. 再按空格停止。讲完出现点评卡：一句结论，几个这个训练块关心的数字，最多三条下次怎么改。“下一项”直接进入下一段。讲到一半不满意，点“放弃这段”或按 Esc，这一段不保存也不分析。
-3. 一次录音的完整分析、讲稿编辑、全部记录、设置，都升起一个四边完整的面板，看完按 Esc 收起，回到原来的地方。设置一次只显示一个分区。
+## Features
 
-完成任意一项就算今天练过。别的入口：
+### One window, three places
 
-- 任何应用里按 ⌃⌥R：直接开始今天的下一项。
-- 菜单栏的桂冠图标：看今天的计划，一键开始。
-- ⌘R 开始或停止，⌘1 到 ⌘3 切换 总览、跟读、主题，⌘4 全部记录，⌘N 新讲稿，⌘, 设置。
+- **Overview.** This week's laurel in the middle. On the left, how you're trending (pace, filler words, pitch range, key-point coverage). On the right, your rhythm (minutes per day, streak, the next talk on your agenda).
+- **Shadow.** Listen to how a real speaker says it, then speak along or retell it in your own words. Tap any line of the transcript to start from there. With speakers, the original stays quiet while you record and the subtitles follow *your* voice, using on-device recognition with about 0.3 s of lag. With headphones, the original plays in your ears and the subtitles follow it.
+- **Topic.** Speak to a prompt, a script, or a meeting you're preparing for.
 
-分析服务在后台启动，不再挡住窗口。服务还没好时也可以录，录完的音频先存起来，服务好了自动分析。
+### Feedback that tells you one thing
 
-## 功能
+- **Local transcription** with [faster-whisper](https://github.com/SYSTRAN/faster-whisper), in English or Mandarin.
+- **A critique card** after every take: a one-line verdict, up to four numbers this training block cares about, and at most three things to try next time. The full analysis is one click away.
+- **Your own targets.** Pace targets start from your recent median and rise each week of a pace block. Loudness is compared only with your last five takes, because decibels depend on the mic and the distance.
+- **Retelling is scored by meaning**, not word for word: each key point is marked covered, partly covered, or missed.
 
-- **训练周期**：九周一个循环，语速与音量两周，语调与停顿两周，讲故事两周，看对象换说法两周，减量一周。目标从你自己最近的录音算出来，不是通用标准。可以在设置里固定在某一块。
-- **每日片段**：每天清晨从演讲和讲座里挑片段，讲故事的用来跟读，讲道理的用来复述。也可以在跟读的素材架上点“贴链接”（YouTube 链接，带 `&t=` 就从那里截），马上做成片段。
-- **即兴题库**：按古希腊修辞学校的练习形式（叙事、引申、描述、比较、立论、换对象、致谢、反驳、答问、汇报）写的题目，内容来自你真实会讲的话题：事故复盘、内部工具推广、数据平台、semantic layer、成本评审、站会汇报、面试问题。
-- **议程**：把要讲的场合加进来（架构评审、1:1、onsite、面试），从那天往前倒排六步备讲，像比赛前的减量。
-- **周小结**：每周一份给自己看的小结：练了几天、哪些指标变了、下周练什么。
-- **提醒**：Mac 通知（设置里打开），可选推到手机（ntfy.sh，免费）。
-- **跟读和要点覆盖**：原有功能都在。跟读可以 0.8 到 1.0 倍速，复述按意思算要点覆盖，不按逐字。
+### A plan, so you never have to pick
 
-## 可选：Claude
+- **A nine-week training cycle**, like a running plan: Τάχος pace and volume (2 weeks), Τόνος intonation and pauses (2), Μῦθος storytelling (2), Πρόσωπον speaking to different audiences (2), Ἀνάπαυσις taper (1). You can pin one block in Settings.
+- **Daily clips.** Every morning Melete cuts one or two 90-second clips from talks and lectures: a story to shadow and an argument to retell. Paste any YouTube link (add `&t=` to start there) to make your own.
+- **Impromptu prompts** in the forms of the ancient Greek rhetoric schools (narrative, chreia, description, comparison, thesis, rebuttal and more), about things you actually talk about at work.
+- **Agenda.** Add an upcoming talk (an architecture review, a 1:1, an interview) and Melete counts back six prep steps, like a taper before a race.
+- **Weekly review**, Mac notifications, and optional reminders on your phone through [ntfy.sh](https://ntfy.sh).
 
-设置 > Claude（可选）。填上 Anthropic API key 以后，每天一次请求，Claude 从规则挑出的候选段落里选最合适的一段，写一个中文标题和两条“注意他怎么停顿、重读哪里”。默认 Claude Opus 5.5，可以换 Sonnet 5.5 或 Haiku 5.5。不开也完全能用，请求失败时自动退回本机规则。Key 只存在本机的 `settings.json`（权限 600）。
+### Always one keystroke away
 
-## 开发模式
+- <kbd>⌃</kbd><kbd>⌥</kbd><kbd>R</kbd> from any app starts today's next item.
+- The laurel in the menu bar shows today's plan.
+- The analysis server starts in the background. You can record before it is ready; the audio waits and is analyzed as soon as it is.
 
-```sh
-./run.sh            # 或 .venv/bin/python server.py
-```
+### Private by design
 
-调试参数（对 `dist/Melete.app/Contents/MacOS/SpeechPractice`）：
+Audio, transcripts and statistics are stored only in `~/Library/Application Support/SpeechPractice/`. Your recordings are never uploaded. Melete goes online only to download the speech models once, to fetch daily clip audio with yt-dlp, and, if you turn them on, to send phone reminders through ntfy or ask Claude to pick a clip.
 
-- `SPEECH_SERVER_URL=http://127.0.0.1:8765` 连开发服务而不拉子进程。
-- `--space home|shadow|topic` 直接打开某个地方，`--tray settings|history|clips|agenda|newTopic|newEvent|addLink` 直接打开某个抽屉。
-- `--selftest` 解析所有接口然后退出。
-- `--render <目录>` 用离屏渲染把各个地方画成浅色和深色的 PNG 然后退出，用来审视设计（`RENDER_ONLY=home,settings` 只画其中几张）。需要用 `open` 启动（直接执行二进制时 SwiftUI 不开主窗口）：`open -n --env SPEECH_SERVER_URL=http://127.0.0.1:8765 dist/Melete.app --args --render /tmp/render`
-- `--e2e <报告>` 端到端测试：用 `MELETE_FAKE_MIC=<wav>` 代替麦克风，走真实的上传、转写和点评，逐项写 PASS 或 FAIL，包括录音时的帧间隔。`--perf <报告>` 只测说话时的帧率。都要指向一份数据副本的服务。
+## Install
 
-服务端的环境变量：`SPEECH_DATA_DIR` 换数据目录（测试时用一份副本），`SPEECH_NO_DAILY=1` 关掉每日片段的后台任务，`DAILY_START_DELAY` 改后台任务启动前的等待秒数（默认 120）。
+1. Download [**Melete.dmg**](https://github.com/oliverxuzy-ai/Melete/releases/latest/download/Melete.dmg) from the [latest release](https://github.com/oliverxuzy-ai/Melete/releases/latest), open it, and drag Melete into Applications.
+2. Melete is not notarized yet, so the first time you open it macOS says it cannot verify the developer. Open **System Settings → Privacy & Security** and click **Open Anyway**, or run:
 
-离线测试片段流水线：`.venv/bin/python daily.py --local 音频文件 "标题" "说话人" story`
+   ```sh
+   xattr -dr com.apple.quarantine /Applications/Melete.app
+   ```
 
-## 模型
+3. For daily clips, install yt-dlp and FFmpeg:
 
-英文用 Whisper `small`（约 500 MB，60 秒录音约 8 秒出结果），启动时预热。中文用 `large-v3-turbo`（约 1.6 GB），第一次录中文时才加载，平时不占内存。
+   ```sh
+   brew install yt-dlp ffmpeg
+   ```
 
-为什么分开：small 对普通话不稳定，会掉句、混入繁体和乱码；turbo 稳定且更准。英文没有用 turbo，是因为它会把 like、um 这类填充词吞掉，而 small 会保留。
-
-想换：`WHISPER_MODEL=medium ./run.sh` 改英文模型，`WHISPER_MODEL_ZH=medium ./run.sh` 改中文模型。
-
-## 指标说明
-
-| 指标 | 含义 |
+| Requirement | |
 |---|---|
-| 语速 | 总词数 / 总时长。目标带由你自己的基线算出，语速块里每周上调 |
-| 去掉停顿后的语速 | 词数 / 实际开口时间 |
-| 停顿 | 相邻两个词之间间隔 ≥ 0.5 秒 |
-| 填充词 | um / uh / like / you know / I mean / basically 等 |
-| 弱化 / 犹豫用语 | maybe / I think / just / kind of 等 |
-| 音量 | 只和你最近五次录音比，因为分贝的绝对值取决于麦克风和距离 |
-| 音高起伏 | 粗略的基频范围（半音）。太小可能是语调单一 |
-| 要点覆盖 | 原文按句拆成要点，按意思判断讲到、部分讲到、没讲 |
+| macOS | 26 Tahoe or later |
+| Chip | Apple Silicon |
+| Disk | About 500 MB for the English model, downloaded on first launch. The Mandarin model (about 1.6 GB) loads the first time you record in Mandarin. |
+| Permissions | Microphone, and Speech Recognition for live subtitles |
+| Interface | Simplified Chinese (English is in progress) |
 
-指标都是启发式的自我追踪数据，不是专业测量。填充词和弱化词列表在 `analysis.py` 顶部，同时镜像在 `native/Sources/SpeechPractice/SessionDetailView.swift` 和 `static/index.html`，改的时候一起改。
+## Quick start
 
-## 文件
+1. Melete opens on **Overview**. Press <kbd>Return</kbd> to jump to today's next item. The water clock fills for three seconds, then recording starts.
+2. Press <kbd>Space</kbd> to stop. The critique card appears, and **Next** takes you to the next item. Not happy halfway through? Press <kbd>Esc</kbd> and the take is neither saved nor analyzed.
+3. Finishing any one item counts as practicing today.
 
-- `native/`：SwiftUI App。`Theme.swift` 是设计令牌，`Components.swift` 是水钟、桂冠、语速刻度等组件，`Controls.swift` 是表单控件。`RootView.swift` 是窗口和顶部导航，`HomeView.swift` 是总览，`StudioView.swift` 是跟读和主题两个工作室，`Stage.swift` 是讲台的状态和点评卡，`Trays.swift` 是底部抽屉，`SettingsPanel.swift` 是设置。`SystemIntegration.swift` 是通知、全局快捷键、开机启动和菜单栏，`E2E.swift` 是端到端测试。
-- `server.py`：FastAPI 服务。
-- `coach.py`：训练周期、目标、题库、今日计划、议程、点评、周报。
-- `daily.py`：每日片段流水线和后台任务。
-- `analysis.py`：转写与指标计算。`coverage.py`：要点覆盖。`shadow.py`：跟读字幕对齐。
-- `build_assets/AppIcon.icon`：App 图标（水钟：玻璃球里半球埃及蓝的水），Icon Composer 格式，macOS 26 自己画玻璃，并生成深色、透明、着色几种风格。`make_icon.swift` 生成它，`make_icon.sh` 再用 Xcode 的 actool 编译成 `Assets.car` 和 `AppIcon.icns`；构建只拷这两个编译结果，不需要 Xcode。
-- `static/index.html`、`app.py`、`build_app.sh`：旧的网页版，不再维护。
-- 数据在 `~/Library/Application Support/SpeechPractice/`：`sessions/`、`practices/`、`activity/`，新增 `settings.json`、`agenda.json`、`plans/`（每天的计划状态）、`daily/`（片源列表 `sources.json`、已用视频和每天的片段 `state.json`）、`pending/`（服务启动前录的音频）。
+| Shortcut | Action |
+|---|---|
+| <kbd>Return</kbd> | Start today's next item |
+| <kbd>Space</kbd> | Stop recording |
+| <kbd>Esc</kbd> | Discard the take, or close a panel |
+| <kbd>⌘</kbd><kbd>R</kbd> | Start or stop recording |
+| <kbd>⌘</kbd><kbd>1</kbd> to <kbd>⌘</kbd><kbd>3</kbd> | Overview, Shadow, Topic |
+| <kbd>⌘</kbd><kbd>4</kbd> | All recordings |
+| <kbd>⌘</kbd><kbd>N</kbd> | New script |
+| <kbd>⌘</kbd><kbd>,</kbd> | Settings |
+| <kbd>⌃</kbd><kbd>⌥</kbd><kbd>R</kbd> | Start today's next item from any app |
 
-改版前的源码备份在 `.backup/pre-redesign-2026-10-25.tar.gz`。
+### Optional: Claude
+
+Add an Anthropic API key in **Settings → Claude**. Once a day, Claude picks the best clip from the candidates the local rules found, and writes a title plus two notes on where the speaker pauses and what they stress. The default model is Claude Opus 5.5; you can switch to Sonnet 5.5 or Haiku 5.5. Without a key, or if a request fails, Melete falls back to the local rules. The key is stored only in `settings.json` on your Mac, readable only by you.
+
+## How it works
+
+```mermaid
+flowchart LR
+  subgraph mac["Your Mac"]
+    app["Melete.app<br/>SwiftUI"]
+    server["Analysis server<br/>FastAPI + faster-whisper"]
+    data[("Application Support/<br/>SpeechPractice")]
+    speech["Apple Speech<br/>on-device"]
+    app -- "recordings over 127.0.0.1" --> server
+    server --> data
+    app -. "live subtitles" .- speech
+  end
+  server -. "daily clips (optional)" .-> yt["YouTube<br/>via yt-dlp"]
+  server -. "clip picking (optional)" .-> claude["Claude API"]
+```
+
+The native app bundles a Python analysis server, so there is nothing else to install or run.
+
+**Models.** English uses Whisper `small` (about 500 MB; a 60-second take is ready in about 8 seconds) and is warmed up at launch. Mandarin uses `large-v3-turbo` (about 1.6 GB), loaded only when you first record in Mandarin. They are split on purpose: `small` drops sentences and mixes in traditional characters on Mandarin, while `turbo` swallows English fillers like "like" and "um" that `small` keeps.
+
+<details>
+<summary><b>What each metric means</b></summary>
+
+| Metric | Meaning |
+|---|---|
+| Pace | Words per minute over the whole take. The target band comes from your own baseline and rises each week of a pace block. |
+| Pace without pauses | Words per minute of actual speaking time |
+| Pause | A gap of 0.5 seconds or more between two words |
+| Filler words | um, uh, like, you know, I mean, basically… |
+| Hedges | maybe, I think, just, kind of… |
+| Loudness | Compared only with your last five takes, because absolute decibels depend on the mic and distance |
+| Pitch range | Rough range of the fundamental frequency, in semitones. A small range can sound monotone. |
+| Key-point coverage | The source is split into key points by sentence, and each is judged covered, partly covered, or missed by meaning |
+
+The metrics are heuristics for tracking yourself, not professional measurements. The filler and hedge word lists live at the top of `analysis.py`, and are mirrored in `native/Sources/SpeechPractice/SessionDetailView.swift` and `static/index.html`; change them together.
+
+</details>
+
+## Build from source
+
+You need Xcode 26 and [uv](https://docs.astral.sh/uv/).
+
+```sh
+git clone https://github.com/oliverxuzy-ai/Melete.git
+cd Melete
+./build_native.sh            # builds dist/Melete.app
+./build_native.sh --install  # also copies it to /Applications (quit the app first)
+```
+
+`--install` replaces an older `SpeechPractice.app`. The bundle ID is unchanged, so history, exercises and settings carry over.
+
+<details>
+<summary><b>Development mode and debug flags</b></summary>
+
+Run the analysis server on its own:
+
+```sh
+./run.sh            # or .venv/bin/python server.py
+```
+
+Flags for `dist/Melete.app/Contents/MacOS/SpeechPractice`:
+
+- `SPEECH_SERVER_URL=http://127.0.0.1:8765` connects to the dev server instead of starting the bundled one.
+- `--space home|shadow|topic` opens a place directly; `--tray settings|history|clips|agenda|newTopic|newEvent|addLink` opens a panel.
+- `--selftest` decodes every endpoint against `SPEECH_SERVER_URL`, then exits.
+- `--render <dir>` renders every place to light and dark PNGs offscreen, then exits (`RENDER_ONLY=home,settings` renders a subset). Launch it with `open`, because SwiftUI does not open the main window when the binary is run directly:
+  `open -n --env SPEECH_SERVER_URL=http://127.0.0.1:8765 dist/Melete.app --args --render /tmp/render`
+- `--e2e <report>` runs the end-to-end test: `MELETE_FAKE_MIC=<wav>` stands in for the microphone and goes through the real upload, transcription and critique, writing PASS or FAIL per check, including frame intervals while recording. `--perf <report>` measures only the frame rate while speaking. Point both at a server that uses a copy of your data.
+
+Server environment variables:
+
+- `SPEECH_DATA_DIR` uses another data directory (a copy, for tests).
+- `SPEECH_NO_DAILY=1` turns off the daily clip job; `DAILY_START_DELAY` sets how many seconds it waits after launch (default 120).
+- `WHISPER_MODEL=medium` and `WHISPER_MODEL_ZH=medium` change the English and Mandarin models.
+
+Test the clip pipeline offline:
+
+```sh
+.venv/bin/python daily.py --local audio-file "Title" "Speaker" story
+```
+
+</details>
+
+<details>
+<summary><b>Project layout</b></summary>
+
+| Path | What it is |
+|---|---|
+| `native/` | The SwiftUI app. `Theme.swift` holds the design tokens; `Components.swift` the water clock, laurel and pace gauge; `RootView.swift` the window and top navigation; `HomeView.swift` the Overview; `StudioView.swift` the Shadow and Topic studios; `Stage.swift` the stage and critique card; `Trays.swift` the panels; `SettingsPanel.swift` Settings; `SystemIntegration.swift` notifications, the global hotkey, launch at login and the menu bar; `E2E*.swift` the end-to-end tests. |
+| `server.py` | FastAPI server |
+| `coach.py` | Training cycle, targets, prompts, daily plan, agenda, critique, weekly review |
+| `daily.py` | Daily clip pipeline and background job |
+| `analysis.py` | Transcription and metrics. `coverage.py` scores key points; `shadow.py` aligns shadowing subtitles. |
+| `build_assets/` | The app icon in Icon Composer format, generated by `make_icon.swift` and compiled by `make_icon.sh` |
+| `static/`, `app.py`, `build_app.sh` | The old web version, no longer maintained |
+
+</details>
+
+### Releases
+
+Every push to `main` builds Melete on GitHub Actions and publishes a release with `Melete.dmg`, `Melete.zip` and their checksums. Pull requests get the same build as a downloadable workflow artifact. Version numbers follow the commit messages since the last release:
+
+| Commit message | Bump | Example |
+|---|---|---|
+| anything | patch | 2.0.0 → 2.0.1 |
+| starts with `feat:`, or contains `#minor` | minor | 2.0.1 → 2.1.0 |
+| contains `BREAKING CHANGE` or `!:`, or `#major` | major | 2.1.0 → 3.0.0 |
+
+To jump to a specific version, raise `CFBundleShortVersionString` in `native/Resources/Info.plist`. You can also release by hand from **Actions → Build & Release → Run workflow** and choose the bump. Changes that only touch Markdown or `docs/` don't trigger a release.
+
+## Design
+
+Ancient marble was never white. Greek temples and statues were painted, with pigment only where it mattered: Egyptian blue behind a relief, cinnabar in the folds of a robe, gold on a laurel. Melete works the same way. The ground is quiet marble and paper, and each pigment does exactly one job.
+
+![kyanos: your voice and anything you can press](https://img.shields.io/badge/kyanos-your%20voice%2C%20anything%20you%20can%20press-2C4AA0?style=flat-square)
+![cinnabar: the microphone is on](https://img.shields.io/badge/cinnabar-the%20mic%20is%20on-C23A1E?style=flat-square)
+![ochre: rewards](https://img.shields.io/badge/ochre-rewards-AD7D21?style=flat-square)
+![malachite: on target](https://img.shields.io/badge/malachite-on%20target-3B7650?style=flat-square)
+
+The colors, type, materials, motion and the reasoning behind each decision are in [docs/DESIGN.md](docs/DESIGN.md).
+
+## Acknowledgments
+
+- [faster-whisper](https://github.com/SYSTRAN/faster-whisper) and [CTranslate2](https://github.com/OpenNMT/CTranslate2), running OpenAI's [Whisper](https://github.com/openai/whisper) models
+- [FastAPI](https://fastapi.tiangolo.com) and [Uvicorn](https://www.uvicorn.org)
+- [yt-dlp](https://github.com/yt-dlp/yt-dlp) and [FFmpeg](https://ffmpeg.org)
+- [ntfy](https://ntfy.sh) for phone reminders
+- Design references: Dia by The Browser Company, bencho.dev, 60fps.design, and Benji Taylor's Family
