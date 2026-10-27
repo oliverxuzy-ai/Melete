@@ -89,6 +89,15 @@ jobs:
       - name: Build
         run: ./build_native.sh
 
+      # The app bundles these packages; a new release of one can break analysis without
+      # breaking the build (PyAV 19 did), so decode a short recording with them.
+      - name: Check that recordings can be decoded
+        run: |
+          say -o "$RUNNER_TEMP/check.aiff" "Melete checks that a recording can be read."
+          afconvert -f m4af -d aac "$RUNNER_TEMP/check.aiff" "$RUNNER_TEMP/check.m4a"
+          .venv/bin/python -c 'import sys; from faster_whisper.audio import decode_audio; a = decode_audio(sys.argv[1]); assert len(a) > 16000, len(a); print(f"decoded {len(a) / 16000:.1f} s")' "$RUNNER_TEMP/check.m4a"
+          uv pip list -p .venv/bin/python | grep -iE '^(av|faster-whisper|ctranslate2) '
+
       - name: Package DMG and zip
         run: |
           mkdir -p out stage

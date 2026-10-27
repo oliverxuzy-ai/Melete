@@ -16,6 +16,7 @@ Recordings, transcripts and stats never leave your Mac.
 ![macOS 26+](https://img.shields.io/badge/macOS-26%2B-1A1916?style=flat-square&logo=apple)
 ![Apple Silicon](https://img.shields.io/badge/Apple%20Silicon-arm64-1A1916?style=flat-square)
 ![Local first](https://img.shields.io/badge/data-stays%20on%20your%20Mac-3B7650?style=flat-square)
+[![MIT license](https://img.shields.io/github/license/oliverxuzy-ai/Melete?style=flat-square&color=1A1916)](LICENSE)
 
 </div>
 
@@ -236,3 +237,7 @@ The colors, type, materials, motion and the reasoning behind each decision are i
 - [yt-dlp](https://github.com/yt-dlp/yt-dlp) and [FFmpeg](https://ffmpeg.org)
 - [ntfy](https://ntfy.sh) for phone reminders
 - Design references: Dia by The Browser Company, bencho.dev, 60fps.design, and Benji Taylor's Family
+
+## License
+
+Melete is released under the [MIT License](LICENSE).
