@@ -18,6 +18,11 @@
 ![本地优先](https://img.shields.io/badge/%E6%95%B0%E6%8D%AE-%E5%8F%AA%E5%9C%A8%E6%9C%AC%E6%9C%BA-3B7650?style=flat-square)
 [![MIT 许可证](https://img.shields.io/github/license/oliverxuzy-ai/Melete?style=flat-square&color=1A1916)](LICENSE)
 
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset=".github/assets/screenshots/zh/window-home-dark.png">
+  <img src=".github/assets/screenshots/zh/window-home-light.png" width="880" alt="Melete 的总览：本周的桂冠居中，左边是语速和填充词的走势，右边是每天练了几分钟和连续天数">
+</picture>
+
 </div>
 
 > Melete（Μελέτη）是希腊语的“练习”，也是最早的三位缪斯之一：Melete 管练习，Mneme 管记忆，Aoide 管声音。这三样正好是这个 App 管的事：每天练，记住要点，把声音练出来。
@@ -35,6 +40,23 @@
 - **总览**：本周的桂冠居中，左边是自己讲的表现走势（语速、填充词、音高起伏、要点覆盖），右边是节奏（这周每天几分钟、连续天数、下一场要讲的会）。
 - **跟读**：先听别人怎么讲，再跟着讲，或者听完用自己的话复述。点原文的任意一句，就从那一句开始听。用扬声器外放时，录音期间原声不放，字幕跟着你的声音走（本机实时识别，约 0.3 秒）；戴耳机时原声在耳机里同步播放，字幕跟原声。
 - **主题**：围绕一个题目、讲稿或要讲的会，自己讲。
+
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset=".github/assets/screenshots/zh/window-shadow-min-dark.png">
+    <img src=".github/assets/screenshots/zh/window-shadow-min-light.png" width="32%" alt="跟读：跟着今天的故事片段讲">
+  </picture>
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset=".github/assets/screenshots/zh/window-retell-min-dark.png">
+    <img src=".github/assets/screenshots/zh/window-retell-min-light.png" width="32%" alt="复述：今天的论证片段，准备用自己的话复述">
+  </picture>
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset=".github/assets/screenshots/zh/window-verdict-min-dark.png">
+    <img src=".github/assets/screenshots/zh/window-verdict-min-light.png" width="32%" alt="即兴讲完后的点评卡：一句结论、四个数字和两条下次可以试的">
+  </picture>
+  <br>
+  <sub>跟读一段片段 · 用自己的话复述 · 每讲完一段给你的点评</sub>
+</p>
 
 ### 点评只说一件事
 
@@ -217,7 +239,11 @@ cd Melete
 | 以 `feat:` 开头，或包含 `#minor` | 次版本号 | 2.0.1 → 2.1.0 |
 | 包含 `BREAKING CHANGE` 或 `!:`，或 `#major` | 主版本号 | 2.1.0 → 3.0.0 |
 
-想直接跳到某个版本，就把 `native/Resources/Info.plist` 里的 `CFBundleShortVersionString` 改大。也可以在 **Actions → Build & Release → Run workflow** 手动发布并选择递增方式。只改 Markdown 或 `docs/` 的推送不会触发发布。
+想直接跳到某个版本，就把 `native/Resources/Info.plist` 里的 `CFBundleShortVersionString` 改大。也可以在 **Actions → Build & Release → Run workflow** 手动发布并选择递增方式。只改 Markdown、`docs/` 或截图的推送不会触发发布。
+
+### 截图
+
+README 里的截图是 App 自己画的，用的是三周虚构的练习数据（`.github/screenshots/seed.py`），不是任何人的录音。改了界面以后，在自己的分支上运行 **Actions → Screenshots → Run workflow**，它会画好中英文、浅色和深色的截图，并提交到那个分支。在已经打包好 App 的 Mac 上，运行 `.github/screenshots/render.sh` 也能在本地画，它用单独的数据目录和端口，不会动你自己的历史记录。
 
 ## 设计
 

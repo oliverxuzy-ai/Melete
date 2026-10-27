@@ -12,16 +12,20 @@ name: Build & Release
 on:
   push:
     branches: [main]
-    paths-ignore: # docs-only changes don't need a new build
+    paths-ignore: # docs and screenshot changes don't need a new build
       - "**.md"
       - "docs/**"
       - ".github/assets/**"
+      - ".github/screenshots/**"
+      - ".github/workflows/screenshots.yml"
       - "LICENSE"
   pull_request:
     paths-ignore:
       - "**.md"
       - "docs/**"
       - ".github/assets/**"
+      - ".github/screenshots/**"
+      - ".github/workflows/screenshots.yml"
       - "LICENSE"
   workflow_dispatch:
     inputs:
