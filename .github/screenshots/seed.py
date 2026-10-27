@@ -353,7 +353,9 @@ def main() -> None:
             when = datetime.combine(day, datetime.min.time()) + timedelta(hours=rnd.choice([7, 8, 12, 20, 21]),
                                                                           minutes=rnd.randint(0, 55))
         progress = idx / (n - 1)
-        rate = round(128 + 30 * progress)               # a little faster every week
+        # `say -r` comes out about a quarter faster than asked once Whisper counts the words,
+        # so these give roughly 125 -> 155 wpm: a little faster every week.
+        rate = round(100 + 22 * progress)
         fillers = 0.55 * (1 - progress) + 0.05          # and fewer "um"s
         item = items.get(kind) if ago == 0 else None
         if kind == "impromptu" and ago == 0:
@@ -367,7 +369,7 @@ def main() -> None:
         else:
             text, practice, scenario = with_fillers(TALKS.get(prompt_id, TALKS[TODAY_PROMPT]), fillers, rnd), "", "meeting"
             title = tr("impromptu").format(prompts[prompt_id]["text"][:40])
-        audio = speak(text, you, rate if kind != "shadow" else 150 + round(14 * progress),
+        audio = speak(text, you, rate if kind != "shadow" else 130 + round(12 * progress),
                       cache / f"take-{idx:02d}-{kind}.m4a")
         drill = {"item": item["id"] if item else None, "kind": kind,
                  "prompt_id": prompt_id if kind == "impromptu" else None, "date": day.isoformat()}

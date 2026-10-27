@@ -76,13 +76,16 @@ jobs:
           PAGES: ${{ inputs.pages || 'window-home,window-shadow-min,window-retell-listen-min,window-verdict-min' }}
         run: .github/screenshots/render.sh
 
+      # Whatever was drawn is kept, even when one language failed.
       - uses: actions/upload-artifact@v6
+        if: ${{ !cancelled() }}
         with:
           name: screenshots
           path: .github/assets/screenshots/
           retention-days: 14
 
       - name: Commit
+        if: ${{ !cancelled() }}
         env:
           BRANCH: ${{ github.head_ref || github.ref_name }}
         run: |
