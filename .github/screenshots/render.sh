@@ -10,8 +10,8 @@ set -eu
 cd "$(dirname "$0")/../.."
 
 OUT=.github/assets/screenshots
-# The README set: Overview, Shadowing mid-take, Retell before speaking, and a Topics prompt
-# (window-verdict-min, which shows the prompt when no take is open).
+# The README set: Overview, Shadowing mid-take, Retell before speaking, and the critique
+# card after today's impromptu take (window-verdict-min).
 PAGES=${PAGES:-window-home,window-shadow-min,window-retell-min,window-verdict-min}
 PORT=${SCREENSHOT_PORT:-8790}
 APP=dist/Melete.app/Contents/MacOS/SpeechPractice

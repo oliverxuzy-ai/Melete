@@ -18,6 +18,11 @@ Recordings, transcripts and stats never leave your Mac.
 ![Local first](https://img.shields.io/badge/data-stays%20on%20your%20Mac-3B7650?style=flat-square)
 [![MIT license](https://img.shields.io/github/license/oliverxuzy-ai/Melete?style=flat-square&color=1A1916)](LICENSE)
 
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset=".github/assets/screenshots/en/window-home-dark.png">
+  <img src=".github/assets/screenshots/en/window-home-light.png" width="880" alt="Melete's Overview: this week's laurel in the middle, pace and filler-word trends on the left, minutes per day and the streak on the right">
+</picture>
+
 </div>
 
 > *Μελέτη* is Greek for "practice". Melete was also the oldest of the three original Muses: Melete for practice, Mneme for memory, Aoide for voice. Those are the three things this app is for: practice every day, remember the key points, and train your voice.
@@ -35,6 +40,23 @@ So Melete opens on today's next exercise. Press <kbd>Return</kbd>, a water clock
 - **Overview.** This week's laurel in the middle. On the left, how you're trending (pace, filler words, pitch range, key-point coverage). On the right, your rhythm (minutes per day, streak, the next talk on your agenda).
 - **Shadow.** Listen to how a real speaker says it, then speak along or retell it in your own words. Tap any line of the transcript to start from there. With speakers, the original stays quiet while you record and the subtitles follow *your* voice, using on-device recognition with about 0.3 s of lag. With headphones, the original plays in your ears and the subtitles follow it.
 - **Topic.** Speak to a prompt, a script, or a meeting you're preparing for.
+
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset=".github/assets/screenshots/en/window-shadow-min-dark.png">
+    <img src=".github/assets/screenshots/en/window-shadow-min-light.png" width="32%" alt="Shadow: speaking along with today's story clip">
+  </picture>
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset=".github/assets/screenshots/en/window-retell-min-dark.png">
+    <img src=".github/assets/screenshots/en/window-retell-min-light.png" width="32%" alt="Retell: today's argument clip, ready to be retold in your own words">
+  </picture>
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset=".github/assets/screenshots/en/window-verdict-min-dark.png">
+    <img src=".github/assets/screenshots/en/window-verdict-min-light.png" width="32%" alt="The critique card after an impromptu take: a one-line verdict, four numbers and two things to try">
+  </picture>
+  <br>
+  <sub>Shadowing a clip · Retelling it in your own words · The note you get after every take</sub>
+</p>
 
 ### Feedback that tells you one thing
 
@@ -217,7 +239,11 @@ Every push to `main` builds Melete on GitHub Actions and publishes a release wit
 | starts with `feat:`, or contains `#minor` | minor | 2.0.1 → 2.1.0 |
 | contains `BREAKING CHANGE` or `!:`, or `#major` | major | 2.1.0 → 3.0.0 |
 
-To jump to a specific version, raise `CFBundleShortVersionString` in `native/Resources/Info.plist`. You can also release by hand from **Actions → Build & Release → Run workflow** and choose the bump. Changes that only touch Markdown or `docs/` don't trigger a release.
+To jump to a specific version, raise `CFBundleShortVersionString` in `native/Resources/Info.plist`. You can also release by hand from **Actions → Build & Release → Run workflow** and choose the bump. Changes that only touch Markdown, `docs/` or the screenshots don't trigger a release.
+
+### Screenshots
+
+The app draws the screenshots in this README itself, from three weeks of made-up practice (`.github/screenshots/seed.py`) rather than anyone's recordings. After a UI change, run **Actions → Screenshots → Run workflow** on your branch: it draws English and Chinese, light and dark, and commits the images to that branch. On a Mac with the app built, `.github/screenshots/render.sh` does the same locally, with its own data folder and port, so your history is not touched.
 
 ## Design
 

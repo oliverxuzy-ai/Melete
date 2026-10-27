@@ -128,7 +128,10 @@ enum RenderHarness {
         return ZStack(alignment: .topLeading) {
             Group {
                 if space == .home {
+                    // Laid out at its full height, as in the scroll view, then cut. A fixed
+                    // height alone squeezes the page and its cards draw over their footers.
                     HomeContent().padding(.horizontal, 36)
+                        .fixedSize(horizontal: false, vertical: true)
                         .frame(height: height - chrome.barHeight - 6, alignment: .top)
                         .clipped()
                 } else {
@@ -204,6 +207,11 @@ enum RenderHarness {
     }
 
     static func verdictStage(stage: StageModel, state: AppState) -> some View {
+        // Fill the topic studio first, as opening it does. Otherwise the studio's own
+        // prepare(for:) on appear swaps the verdict for a ready stage whenever the page drawn
+        // before was the shadow studio, and only the second (dark) drawing showed the verdict.
+        stage.phase = .ready
+        stage.prepare(for: .topic)
         stage.eyebrow = L("即兴，汇报", "Impromptu · Update")
         stage.result = state.currentSession
         stage.phase = state.currentSession == nil ? .ready : .result
