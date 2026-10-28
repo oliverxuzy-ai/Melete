@@ -297,7 +297,9 @@ struct LivePace: View {
     @Environment(StageModel.self) private var stage
     @Environment(Recorder.self) private var recorder
 
-    private var band: ClosedRange<Double> { state.today?.targets.band ?? 140...165 }
+    /// Chinese is counted in characters, so it has its own band and unit (as in the verdict).
+    private var zh: Bool { stage.language == "zh" }
+    private var band: ClosedRange<Double> { zh ? paceBand(for: "zh") : (state.today?.targets.band ?? 140...165) }
     private var live: Bool { stage.phase == .recording && recorder.liveWPM > 0 }
 
     var body: some View {
@@ -306,7 +308,7 @@ struct LivePace: View {
             HStack(alignment: .firstTextBaseline, spacing: 4) {
                 Text("\(Int(live ? recorder.liveWPM : 0))").font(Typeface.display(44)).monospacedDigit()
                     .foregroundStyle(live && band.contains(recorder.liveWPM) ? Palette.malachite : Palette.ink)
-                Text(L("词/分", "wpm")).font(Typeface.ui(12)).foregroundStyle(Palette.ink2)
+                Text(zh ? L("字/分", "chars/min") : L("词/分", "wpm")).font(Typeface.ui(12)).foregroundStyle(Palette.ink2)
             }
             PaceGauge(wpm: live ? recorder.liveWPM : nil, band: band, reference: stage.practice?.reference?.metrics.wpm)
             Text(caption).font(Typeface.ui(11)).foregroundStyle(Palette.ink3)
@@ -368,10 +370,16 @@ struct StageControls: View {
 
     /// Only ever plays the original: 听原文, then 暂停 and 继续听 while it plays.
     private var listenButton: some View {
-        Button { stage.phase == .listening ? stage.player.toggle() : stage.listen() } label: {
+        Button {
+            CaptureLog.write("listen button in \(stage.phase), playing \(stage.player.playing)")
+            stage.phase == .listening ? stage.player.toggle() : stage.listen()
+        } label: {
             Label(stage.listenLabel, systemImage: stage.phase != .listening ? "ear" : (stage.player.playing ? "pause.fill" : "play.fill"))
                 .font(Typeface.ui(13, .medium)).foregroundStyle(Palette.ink)
                 .padding(.horizontal, 16).padding(.vertical, 10)
+                // The whole capsule takes the click. Without it only the glyphs did, and a
+                // press between the icon and 暂停, or on the padding, did nothing.
+                .contentShape(Capsule())
         }
         .buttonStyle(.plain)
         .glassEffect(canListen ? .regular.interactive() : .identity, in: .capsule)
@@ -386,6 +394,7 @@ struct StageControls: View {
                         .padding(.horizontal, 10).padding(.vertical, 8)
                         .foregroundStyle(stage.rate == r ? .white : Palette.ink2)
                         .background(stage.rate == r ? Palette.kyanos : .clear, in: Capsule())
+                        .contentShape(Capsule())
                 }
                 .buttonStyle(.plain)
             }

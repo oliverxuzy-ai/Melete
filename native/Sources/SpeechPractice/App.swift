@@ -15,6 +15,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         return .terminateNow
     }
 
+    func applicationWillFinishLaunching(_ notification: Notification) {
+        // One window, no tabs: otherwise 显示 and 窗口 offer a tab bar the window has no use for.
+        NSWindow.allowsAutomaticWindowTabbing = false
+    }
+
     func applicationDidFinishLaunching(_ notification: Notification) {
         MainActor.assumeIsolated {
             Reminders.shared.setup()
@@ -154,6 +159,15 @@ struct SpeechPracticeApp: App {
                     .disabled(stage.isActive)
                 Button(L("全部记录", "All Takes")) { Task { await state.openTray(.history) } }
                     .disabled(stage.isActive)
+                Button(L("全部片段", "All Clips")) { Task { await state.openTray(.clips) } }
+                    .disabled(stage.isActive)
+            }
+            // There is no Help book; the system item only said none was found. The README is the help.
+            CommandGroup(replacing: .help) {
+                Button(L("Melete 使用说明", "Melete Guide")) {
+                    NSWorkspace.shared.open(URL(string: L("https://github.com/oliverxuzy-ai/Melete/blob/main/README.zh-CN.md",
+                                                          "https://github.com/oliverxuzy-ai/Melete#readme"))!)
+                }
             }
         }
 

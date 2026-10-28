@@ -22,9 +22,27 @@ if [ -n "$previous" ]; then
 fi
 
 NOTES=$notes python3 - "$version" "$build" "$zip" "$repo" native/Resources/Info.plist <<'EOF'
-import hashlib, json, os, plistlib, sys
+import hashlib, json, os, plistlib, re, sys
 
 version, build, zip_path, repo, plist_path = sys.argv[1:6]
+
+# The update banner shows these to the person updating: leave out work they never see
+# (docs, CI, chores, tests, build), and drop the "feat:" / "fix:" prefixes.
+INTERNAL = re.compile(r"^(docs|ci|chore|test|tests|build|refactor|style)(\([^)]*\))?!?:", re.I)
+PREFIX = re.compile(r"^(feat|fix|perf)(\([^)]*\))?!?:\s*", re.I)
+
+
+def user_notes(text):
+    out = []
+    for line in text.splitlines():
+        line = line.strip()
+        if not line or INTERNAL.match(line):
+            continue
+        line = PREFIX.sub("", line)
+        out.append(line[:1].upper() + line[1:])
+    return out
+
+
 digest = hashlib.sha256()
 with open(zip_path, "rb") as f:
     for chunk in iter(lambda: f.read(1 << 20), b""):
@@ -40,7 +58,7 @@ manifest = {
     "size": os.path.getsize(zip_path),
     "minimumSystemVersion": minimum,
     "releaseURL": f"https://github.com/{repo}/releases/tag/{tag}",
-    "notes": [line for line in os.environ.get("NOTES", "").splitlines() if line.strip()],
+    "notes": user_notes(os.environ.get("NOTES", "")),
 }
 json.dump(manifest, sys.stdout, indent=2, ensure_ascii=False)
 print()

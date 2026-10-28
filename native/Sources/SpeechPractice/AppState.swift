@@ -483,6 +483,7 @@ final class AppState {
         guard let api, let p = practice else { return }
         do {
             practice = try await api.send("PATCH", "api/practices/\(p.id)", json: ["title": title, "scenario": scenario, "script": script, "notes": notes])
+            if let saved = practice { stage?.practiceEdited(saved) }
             await refreshAll()
             await reloadHistory()
             if let cur = currentSession { currentSession = try await api.session(cur.id) }

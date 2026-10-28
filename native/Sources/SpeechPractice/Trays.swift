@@ -13,11 +13,15 @@ struct TrayHost: View {
         let _ = FrameProbe.drawnTray = state.tray?.id ?? ""
         ZStack(alignment: .bottom) {
             if state.tray != nil {
-                Color.black.opacity(0.22)
-                    .ignoresSafeArea()
-                    .onTapGesture { state.closeTray() }
-                    .transition(.opacity)
-                    .zIndex(1)
+                // A button, not a tap gesture: a tap gesture laid over the whole window took
+                // every hover with it, so nothing in a tray showed its tooltip or hover state.
+                Button { state.closeTray() } label: {
+                    Color.black.opacity(0.22).ignoresSafeArea()
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(L("关闭", "Close"))
+                .transition(.opacity)
+                .zIndex(1)
             }
             if let t = state.tray {
                 TraySheet(tray: t, topInset: topInset)

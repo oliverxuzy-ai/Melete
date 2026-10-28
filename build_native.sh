@@ -22,6 +22,11 @@ cp build_assets/Assets.car build_assets/AppIcon.icns "$APP/Contents/Resources/"
 cp -R native/Resources/*.lproj "$APP/Contents/Resources/"   # permission prompts in Chinese and English
 cp -R dist/SpeechPracticeServer "$APP/Contents/Resources/server"
 codesign --force --deep --sign - "$APP" >/dev/null 2>&1 || true
+# Ad-hoc signing names the build by its hash, so macOS took every update for a new app and asked
+# for the microphone again. Re-sign the app itself with a requirement that names its bundle id,
+# so a permission given to one version holds for the next.
+BUNDLE_ID=$(/usr/libexec/PlistBuddy -c 'Print CFBundleIdentifier' "$APP/Contents/Info.plist")
+codesign --force --sign - -r="designated => identifier \"$BUNDLE_ID\"" "$APP" >/dev/null 2>&1 || true
 echo "built: $(pwd)/$APP"
 
 if [ "$1" = "--install" ]; then

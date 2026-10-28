@@ -156,7 +156,8 @@ struct StartSettings: View {
 
     private var hotkeyDetail: String {
         if hotkey && GlobalHotkey.shared.status != noErr { return L("这个组合被别的 App 占用了，关掉再打开试试。", "Another app is using this combination. Try turning it off and on again.") }
-        return L("在任何 App 里按下，直接打开今天的下一项，三秒后开始录。", "Press it in any app to open today's next item; recording starts three seconds later.")
+        return L("在任何 App 里按下，直接打开今天的下一项：三秒后开始录，复述先放原文。",
+                 "Press it in any app to open today's next item: recording starts three seconds later, or a retell plays its original first.")
     }
 }
 
@@ -289,13 +290,15 @@ struct CycleSettings: View {
                     blockRow(key: b.key, greek: b.greek, name: L("\(b.name)，\(b.weeks) 周", "\(b.name), \(plural(b.weeks, "week"))"), detail: b.why, selected: s.coach.blockOverride == b.key)
                 }
                 SettingRow(title: L("从本周重新开始周期", "Restart the cycle this week"), detail: L("回到第一个训练块。之前的记录都在。", "Back to the first training block. Your record stays."), divider: false) {
-                    Button(L("重新开始", "Restart")) {
+                    // It throws away where you are in the cycle, so it asks first, in place.
+                    ConfirmButton(title: L("重新开始", "Restart"),
+                                  question: L("现在练到哪一块、第几周会清零。", "Where you are in the cycle starts over."),
+                                  confirm: L("重新开始", "Restart")) {
                         let f = DateFormatter(); f.dateFormat = "yyyy-MM-dd"; f.locale = Locale(identifier: "en_US_POSIX")
                         let iso = Calendar(identifier: .iso8601)
                         let monday = iso.date(from: iso.dateComponents([.yearForWeekOfYear, .weekOfYear], from: Date())) ?? Date()
                         Task { await state.saveSettings(["coach": ["cycle_start": f.string(from: monday), "block_override": NSNull()]]) }
                     }
-                    .buttonStyle(.glass)
                 }
             } else {
                 ProgressView().padding(18)

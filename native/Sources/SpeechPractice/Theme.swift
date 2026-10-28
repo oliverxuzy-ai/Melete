@@ -206,8 +206,16 @@ struct LeafShape: Shape {
 /// The one prominent action on a page: Egyptian blue glass.
 struct PrimaryGlass: ViewModifier {
     var tint: Color = Palette.kyanos
-    func body(content: Content) -> some View {
-        content.buttonStyle(.glassProminent).tint(tint).controlSize(.large)
+    @Environment(\.isEnabled) private var isEnabled
+
+    /// Disabled prominent glass draws its white label on near-white glass, so a button that
+    /// is not ready yet read as an empty capsule; it waits as plain glass with its label showing.
+    @ViewBuilder func body(content: Content) -> some View {
+        if isEnabled {
+            content.buttonStyle(.glassProminent).tint(tint).controlSize(.large)
+        } else {
+            content.buttonStyle(.glass).controlSize(.large)
+        }
     }
 }
 

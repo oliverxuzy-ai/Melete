@@ -589,7 +589,15 @@ def build_plan(d: date, sessions: list[dict], clips: list[dict], agenda: list[di
         return None
 
     for n, clip in enumerate(clips):
-        kind = "shadow" if n == 0 or block["key"] == "anapausis" else "retell"
+        # A story is shadowed and an explanation retold (the role a clip was picked for, or the
+        # one chosen when a link was pasted); clips without a role go by position as before.
+        role = clip.get("role") or (clip.get("clip") or {}).get("role")
+        if block["key"] == "anapausis":
+            kind = "shadow"
+        elif role in ("story", "explain"):
+            kind = "shadow" if role == "story" else "retell"
+        else:
+            kind = "shadow" if n == 0 else "retell"
         item_id = f"{d.isoformat()}:{kind}:{n}"
         items.append({
             "id": item_id, "kind": kind, "practice_id": clip["id"],
