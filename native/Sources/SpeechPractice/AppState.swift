@@ -14,14 +14,14 @@ enum HistoryScope: Hashable {
     }
 }
 
-/// The three places in the app. Practice happens in the two studios; the overview is where
-/// history, progress and rhythm live.
+/// The three places in the app. Practice happens in the two studios; 今天 says what to practice
+/// today and starts it. How practice is going is a tray (进展), not a place.
 enum Space: String, CaseIterable, Identifiable {
     case home, shadow, topic
     var id: String { rawValue }
     var label: String {
         switch self {
-        case .home: return L("总览", "Overview")
+        case .home: return L("今天", "Today")
         case .shadow: return L("跟读", "Shadowing")
         case .topic: return L("主题", "Topics")
         }
@@ -29,7 +29,7 @@ enum Space: String, CaseIterable, Identifiable {
     /// The Greek word each space is named after, shown when a studio is empty.
     var greek: String {
         switch self {
-        case .home: return "Σύνοψις"
+        case .home: return "Σήμερον"
         case .shadow: return "Μίμησις"
         case .topic: return "Θέμα"
         }
@@ -39,7 +39,7 @@ enum Space: String, CaseIterable, Identifiable {
 
 /// Panels that rise over the current space instead of navigating away from it.
 enum Tray: Identifiable, Equatable {
-    case settings, session(String), practice(String), newTopic, newEvent, addLink, history, clips, agenda
+    case settings, session(String), practice(String), newTopic, newEvent, addLink, history, clips, agenda, progress
     var id: String {
         switch self {
         case .settings: return "settings"
@@ -51,6 +51,7 @@ enum Tray: Identifiable, Equatable {
         case .newEvent: return "newEvent"
         case .addLink: return "addLink"
         case .history: return "history"
+        case .progress: return "progress"
         }
     }
 
@@ -101,7 +102,7 @@ final class AppState {
 
     var space: Space = .home
     /// The studio the studio view shows: the last of 跟读 and 主题 you were in. It stays mounted
-    /// behind the overview, so walking between places never tears a view down.
+    /// behind 今天, so walking between places never tears a view down.
     var studio: Space = .shadow
     var tray: Tray?
     /// The settings section to show when the settings tray opens next ("update" from the menu).
@@ -155,12 +156,12 @@ final class AppState {
         await loadRecent()
         await loadInsights()
         await loadRecap()
-        // `--space home|shadow|topic` and `--tray settings|history|clips|agenda|newTopic|newEvent|addLink`
+        // `--space home|shadow|topic` and `--tray progress|settings|history|clips|agenda|newTopic|newEvent|addLink`
         // open a place directly (used for testing and design review).
         if let i = CommandLine.arguments.firstIndex(of: "--space"), CommandLine.arguments.count > i + 1,
            let sp = Space(rawValue: CommandLine.arguments[i + 1]) { go(sp) }
         if let i = CommandLine.arguments.firstIndex(of: "--tray"), CommandLine.arguments.count > i + 1 {
-            let named: [String: Tray] = ["settings": .settings, "history": .history, "clips": .clips, "agenda": .agenda,
+            let named: [String: Tray] = ["progress": .progress, "settings": .settings, "history": .history, "clips": .clips, "agenda": .agenda,
                                          "newTopic": .newTopic, "newEvent": .newEvent, "addLink": .addLink]
             if let t = named[CommandLine.arguments[i + 1]] { await openTray(t) }
         }
@@ -232,6 +233,7 @@ final class AppState {
         case .session(let id): await open(sessionID: id)
         case .practice(let id): await loadPractice(id)
         case .history: await reloadAllHistory()
+        case .progress: await loadProgress()
         case .newEvent, .agenda: await loadAgenda()
         case .clips: await loadDaily()
         case .settings: if settings == nil { await loadSettings() }
@@ -257,6 +259,7 @@ final class AppState {
         switch back {
         case .practice(let id): await loadPractice(id)
         case .history: await reloadAllHistory()
+        case .progress: await loadRecent()
         default: break
         }
         tray = back
@@ -286,6 +289,15 @@ final class AppState {
         activity.flush()
         try? await Task.sleep(for: .milliseconds(150))
         do { insights = try await api.get("api/insights?days=371") } catch { report(error) }
+    }
+
+    /// Everything 进展 shows. On a Monday its recap opens on last week: the new week has
+    /// barely started, and the week just finished is the one worth reading.
+    func loadProgress() async {
+        recapOffset = Calendar.current.component(.weekday, from: Date()) == 2 ? 1 : 0
+        await loadRecent()
+        await loadInsights()
+        await loadRecap()
     }
 
     func loadRecap() async {

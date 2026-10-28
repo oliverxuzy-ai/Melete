@@ -480,8 +480,15 @@ def agenda_view(sessions: list[dict], practices: dict, today: date | None = None
 # ---------------------------------------------------------------- week and plan
 
 
+# One rule for "practiced that day", used by the laurel, the streak, the recap and the year:
+# at least PRACTICED_SEC of recording, where listening to an original counts half (hearing
+# someone else is lighter work than speaking). Listening back to yourself is review and
+# doesn't count toward the day, though its minutes still show.
+PRACTICED_SEC = 20   # one real attempt is enough to count the day
+
+
 def day_activity(sessions: list[dict], activity: list[dict]) -> dict[str, float]:
-    """Seconds of practice per day: recordings plus listening to references."""
+    """Seconds that count toward a practiced day: recordings plus half of listening to originals."""
     out: dict[str, float] = {}
     for s in sessions:
         out[s["created_at"][:10]] = out.get(s["created_at"][:10], 0) + float(s.get("duration_sec") or 0)
@@ -491,21 +498,34 @@ def day_activity(sessions: list[dict], activity: list[dict]) -> dict[str, float]
     return out
 
 
-PRACTICED_SEC = 20   # one real attempt is enough to count the day
+def practiced_days(sessions: list[dict], activity: list[dict]) -> set[str]:
+    """Every day (ISO date) that counts as practiced."""
+    return {d for d, sec in day_activity(sessions, activity).items() if sec >= PRACTICED_SEC}
+
+
+def day_seconds(sessions: list[dict], activity: list[dict]) -> dict[str, float]:
+    """Time actually spent per day, at face value: recording and all listening. Every
+    "minutes" figure shows this (the week's bars and total, the recap, the year)."""
+    out: dict[str, float] = {}
+    for s in sessions:
+        out[s["created_at"][:10]] = out.get(s["created_at"][:10], 0) + float(s.get("duration_sec") or 0)
+    for e in activity:
+        out[e["at"][:10]] = out.get(e["at"][:10], 0) + float(e.get("wall_sec") or 0)
+    return out
 
 
 def week_view(sessions: list[dict], activity: list[dict], today: date | None = None, settings: dict | None = None) -> dict:
     today = today or date.today()
     s = settings or load_settings()
     per_day = day_activity(sessions, activity)
+    spent = day_seconds(sessions, activity)
     start = monday(today)
     days = []
     for i in range(7):
         d = start + timedelta(days=i)
-        sec = per_day.get(d.isoformat(), 0.0)
-        practiced = sec >= PRACTICED_SEC
+        practiced = per_day.get(d.isoformat(), 0.0) >= PRACTICED_SEC
         state = "done" if practiced else ("today" if d == today else ("missed" if d < today else "future"))
-        days.append({"date": d.isoformat(), "state": state, "minutes": round(sec / 60, 1)})
+        days.append({"date": d.isoformat(), "state": state, "minutes": round(spent.get(d.isoformat(), 0.0) / 60, 1)})
     yesterday = (today - timedelta(days=1)).isoformat()
     before = (today - timedelta(days=2)).isoformat()
     missed_yesterday = per_day.get(yesterday, 0) < PRACTICED_SEC
@@ -856,11 +876,12 @@ def recap(sessions: list[dict], activity: list[dict], offset_weeks: int = 0, tod
     week = [s for s in sessions if in_range(s, start, end)]
     prev = [s for s in sessions if in_range(s, prev_start, prev_start + timedelta(days=6))]
     per_day = day_activity(sessions, activity)
+    spent = day_seconds(sessions, activity)
     days = []
     for i in range(7):
         d = start + timedelta(days=i)
-        sec = per_day.get(d.isoformat(), 0.0)
-        days.append({"date": d.isoformat(), "practiced": sec >= PRACTICED_SEC, "minutes": round(sec / 60, 1)})
+        days.append({"date": d.isoformat(), "practiced": per_day.get(d.isoformat(), 0.0) >= PRACTICED_SEC,
+                     "minutes": round(spent.get(d.isoformat(), 0.0) / 60, 1)})
     listen = sum(float(e.get("wall_sec") or 0) for e in activity if start.isoformat() <= e["at"][:10] <= end.isoformat())
 
     def avg(rows, fn):

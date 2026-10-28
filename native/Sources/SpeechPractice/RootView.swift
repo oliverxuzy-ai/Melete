@@ -1,8 +1,8 @@
 import SwiftUI
 import AppKit
 
-/// One window, three places. A glass capsule at the top switches between the overview and
-/// the two studios; everything else (a recording's analysis, a script, settings) rises from
+/// One window, three places. A glass capsule at the top switches between 今天 and the two
+/// studios; everything else (a recording's analysis, a script, settings) rises from
 /// the bottom as a tray over the place you are in, so you never lose where you were.
 ///
 /// The top bar is drawn in the window's own content, level with the traffic lights. It used to
@@ -53,7 +53,7 @@ struct RootView: View {
             Task { await state.openTray(.settings) }
         }
         .onReceive(NotificationCenter.default.publisher(for: .toggleRecording)) { _ in
-            // ⌘R: in a studio, start or stop what is on its stage; on the overview, today's next item.
+            // ⌘R: in a studio, start or stop what is on its stage; on 今天, today's next item.
             if state.space != .home, stage.studio == state.space, stage.hasMaterial {
                 if state.tray != nil { state.closeTray() }
                 stage.start("menu")
@@ -174,7 +174,7 @@ struct Wordmark: View {
     }
 }
 
-/// 总览, 跟读, 主题. The blue puck slides to where you are; a gold dot marks a studio that
+/// 今天, 跟读, 主题. The blue puck slides to where you are; a gold dot marks a studio that
 /// still has something left for today.
 struct NavCapsule: View {
     @Environment(AppState.self) private var state
@@ -227,14 +227,14 @@ struct NavCapsule: View {
 
     private func help(_ s: Space) -> String {
         switch s {
-        case .home: return L("总览：节奏、表现和记录（⌘1）", "Overview: rhythm, performance and the record (⌘1)")
+        case .home: return L("今天：今天练什么，按回车开始（⌘1）", "Today: what to practice today; Return starts it (⌘1)")
         case .shadow: return L("跟读：先听别人怎么讲，再跟着讲（⌘2）", "Shadowing: hear how someone else says it, then speak along (⌘2)")
         case .topic: return L("主题：围绕一个题目或讲稿，自己讲（⌘3）", "Topics: speak on your own about a prompt or a script (⌘3)")
         }
     }
 }
 
-/// This week's laurel in miniature (back to the overview) and the settings gear.
+/// This week's laurel in miniature, the way into 进展, and the settings gear.
 struct TopBarTrailing: View {
     @Environment(AppState.self) private var state
     @Environment(StageModel.self) private var stage
@@ -242,7 +242,9 @@ struct TopBarTrailing: View {
     var body: some View {
         HStack(spacing: 10) {
             if let w = state.today?.week {
-                Button { state.closeTray(); state.go(.home) } label: {
+                Button {
+                    if state.tray == .progress { state.closeTray() } else { Task { await state.openTray(.progress) } }
+                } label: {
                     HStack(spacing: 5) {
                         LaurelWreath(days: w.laurel, target: w.target, size: 24, showCount: false)
                         Text("\(w.done)/\(w.target)").font(Typeface.display(14)).monospacedDigit().foregroundStyle(Palette.ink)
@@ -252,7 +254,7 @@ struct TopBarTrailing: View {
                 }
                 .buttonStyle(.plain)
                 .glassEffect(.regular.interactive(), in: .capsule)
-                .help(L("本周练了 \(w.done) 天，目标 \(w.target) 天", "Practiced \(plural(w.done, "day")) this week, goal \(w.target)"))
+                .help(L("本周练了 \(w.done) 天，目标 \(w.target) 天。点开看进展（⌘4）", "Practiced \(plural(w.done, "day")) this week, goal \(w.target). Click for progress (⌘4)"))
             }
             Button { Task { await state.openTray(.settings) } } label: {
                 Image(systemName: "gearshape").font(.system(size: 14, weight: .medium)).foregroundStyle(Palette.ink2)

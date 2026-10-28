@@ -401,7 +401,7 @@ enum E2E {
         let studio = state.space
         state.closeTray(); state.go(.home)
         try? await Task.sleep(for: .milliseconds(800))
-        check("drawn: 总览 comes forward", FrameProbe.drawnSpace == "home", "drew \(FrameProbe.drawnSpace)")
+        check("drawn: 今天 comes forward", FrameProbe.drawnSpace == "home", "drew \(FrameProbe.drawnSpace)")
         state.closeTray(); state.go(studio)
         try? await Task.sleep(for: .milliseconds(800))
         check("drawn: back to the studio", FrameProbe.drawnSpace == studio.rawValue, "drew \(FrameProbe.drawnSpace)")
@@ -617,7 +617,7 @@ enum E2E {
         check("fake microphone configured", ProcessInfo.processInfo.environment["MELETE_FAKE_MIC"] != nil)
         await state.boot()
         check("analysis service ready", state.isReady)
-        check("opens on the overview", state.space == .home, "\(state.space)")
+        check("opens on 今天", state.space == .home, "\(state.space)")
         await state.refreshToday()
         guard let today = state.today, let api = state.api else { check("today loads", false); finish() ; return }
         if ProcessInfo.processInfo.environment["E2E_EMPTY"] == nil {
@@ -665,7 +665,7 @@ enum E2E {
         if let next = state.today?.nextItem {
             stage.presentNext()
             let moved = await waitFor(3) { state.space == Space.of(kind: next.kind) }
-            check("starting from the overview lands in that item's studio", moved, "\(next.kind) in \(state.space)")
+            check("starting from 今天 lands in that item's studio", moved, "\(next.kind) in \(state.space)")
             _ = await waitFor(6) { stage.phase == .countdown || stage.phase == .listening }
             stage.cancel()
             let back = await waitFor(2) { stage.phase == .ready }
@@ -715,7 +715,7 @@ enum E2E {
         if let retell = today.items.first(where: { $0.kind == "retell" }) {
             stage.present(item: retell)
             let listening = await waitFor(10) { stage.phase == .listening && stage.player.time > 0.6 }
-            check("retell: started from the overview, the original plays first", listening, String(format: "phase %@, %.2f s", "\(stage.phase)", stage.player.time))
+            check("retell: started from 今天, the original plays first", listening, String(format: "phase %@, %.2f s", "\(stage.phase)", stage.player.time))
             FrameProbe.begin()
             stage.toggle()   // stop listening, fill the clock
             let rec = await waitFor(10) { stage.phase == .recording }
@@ -828,15 +828,35 @@ enum E2E {
             check("agenda: deleting the talk restores the prompt", state.today?.items.contains(where: { $0.kind == "agenda" }) == false)
         }
 
-        // 6b. Trays: a recording, the full record, a practice and back, settings.
+        // 6b. Trays: a recording, 进展 and the full record from it, a practice and back, settings.
         await state.loadRecent()
         if let sid = state.recent.first?.id {
             await state.openTray(.session(sid))
             check("a recording opens in a tray", state.tray == .session(sid) && state.currentSession?.id == sid)
             state.closeTray()
         }
+        await state.openTray(.progress)
+        check("进展 opens with the week, the record and the year", state.tray == .progress && state.insights != nil && state.recap != nil && !state.recent.isEmpty,
+              "insights \(state.insights != nil), recap \(state.recap != nil), \(state.recent.count) rows")
+        await state.refreshToday()
+        if let t = state.insights?.totals, let w = state.today?.week {
+            // One rule for a day: the run of gold leaves up to yesterday (or today, once it counts)
+            // is the streak, or the start of it when the run reaches back past Monday.
+            var run = Array(w.days.prefix { $0.state != "future" })
+            if run.last?.state == "today" { run.removeLast() }
+            let tail = run.reversed().prefix { $0.state == "done" }.count
+            check("进展: the streak counts days by the laurel's rule", tail == run.count ? t.currentStreak >= tail : t.currentStreak == tail,
+                  "leaves in a row \(tail), streak \(t.currentStreak)")
+            let weekMinutes = w.days.map(\.minutes).reduce(0, +)
+            check("进展: one count of the week's minutes", abs(weekMinutes - t.thisWeekSec / 60) < 1,
+                  String(format: "week %.1f min, insights %.1f min", weekMinutes, t.thisWeekSec / 60))
+        }
         await state.openTray(.history)
         check("全部记录 lists every recording", state.tray == .history && !state.history.isEmpty, "\(state.history.count) rows")
+        check("全部记录 opened from 进展 can step back", state.trayBack == .progress)
+        await state.trayGoBack()
+        check("返回 steps back to 进展", state.tray == .progress && state.trayBack == nil)
+        state.closeTray()
         if let clip = state.clipPractices.first(where: { $0.sessionCount > 0 }) {
             await state.openTray(.practice(clip.id))
             check("a clip opens with its attempts", state.tray == .practice(clip.id) && state.practice?.id == clip.id && !state.sessions.isEmpty,

@@ -14,9 +14,10 @@ set -eu
 cd "$(dirname "$0")/../.."
 
 OUT=.github/assets/screenshots
-# The README set: Shadowing mid-take as a moving picture, then the Overview, Retell before
-# speaking, and the critique card after today's impromptu take (window-verdict-min).
-PAGES=${PAGES:-window-shadow-live,window-home-min,window-retell-min,window-verdict-min}
+# The README set: Shadowing mid-take as a moving picture, then Today, the Progress tray over
+# it, Retell before speaking, and the critique card after today's impromptu take
+# (window-verdict-min).
+PAGES=${PAGES:-window-shadow-live,window-home-min,window-progress-min,window-retell-min,window-verdict-min}
 SCHEMES=${SCHEMES:-light}
 PORT=${SCREENSHOT_PORT:-8790}
 APP=dist/Melete.app/Contents/MacOS/SpeechPractice

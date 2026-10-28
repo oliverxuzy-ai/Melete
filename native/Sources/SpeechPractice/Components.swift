@@ -210,7 +210,7 @@ struct VoiceOrb: View {
     /// Water left (0...1) at a moment in time; nil keeps the vessel full.
     var remaining: (Date) -> Double?
     var live: Bool
-    /// False while the studio waits behind the overview: nothing to draw, so the clock stops.
+    /// False while the studio waits behind 今天: nothing to draw, so the clock stops.
     var visible = true
     var size: CGFloat = 240
     @Environment(\.accessibilityReduceMotion) private var reduceMotion

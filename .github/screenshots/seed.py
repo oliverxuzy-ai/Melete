@@ -325,7 +325,8 @@ def main() -> None:
     (daily_dir / "state.json").write_text(json.dumps(
         {"used_videos": {}, "days": {today.isoformat(): {"items": [story, explain], "errors": []}}}, indent=1))
 
-    # A talk more than ten days out shows on Overview without replacing today's impromptu prompt.
+    # A talk more than ten days out is on the agenda but not yet on Today, so today's impromptu
+    # prompt stays in the plan (a talk takes its place ten days out).
     request("POST", "/api/agenda", {"title": tr("event"), "kind": "review", "minutes": 10,
                                     "date": (today + timedelta(days=16)).isoformat(), "notes": ""})
 

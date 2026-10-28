@@ -10,7 +10,7 @@ struct RecapCard: View {
             if let r = state.recap {
                 HStack(alignment: .firstTextBaseline) {
                     VStack(alignment: .leading, spacing: 4) {
-                        Text(state.recapOffset == 0 ? L("本周小结", "This week") : L("\(state.recapOffset) 周前", state.recapOffset == 1 ? "Last week" : "\(state.recapOffset) weeks ago")).font(Typeface.display(26)).foregroundStyle(Palette.ink)
+                        Text(state.recapOffset == 0 ? L("本周小结", "This week") : state.recapOffset == 1 ? L("上周小结", "Last week") : L("\(state.recapOffset) 周前", "\(state.recapOffset) weeks ago")).font(Typeface.display(26)).foregroundStyle(Palette.ink)
                         Text(L("\(shortDay(r.start)) 到 \(shortDay(r.end))，\(r.block.greek) \(r.block.name)", "\(shortDay(r.start)) to \(shortDay(r.end)), \(r.block.greek) \(r.block.name)")).font(Typeface.ui(12)).foregroundStyle(Palette.ink2)
                     }
                     Spacer()

@@ -90,11 +90,11 @@ extension E2E {
         let before = (stage.item?.id, stage.phase)
         space()
         try? await Task.sleep(for: .milliseconds(500))
-        check("keys: Space on the overview leaves the stage alone", stage.item?.id == before.0 && stage.phase == before.1, "\(stage.phase)")
+        check("keys: Space on 今天 leaves the stage alone", stage.item?.id == before.0 && stage.phase == before.1, "\(stage.phase)")
 
         returnKey()
         let started = await waitFor(4) { state.space != .home && (stage.phase == .countdown || stage.phase == .listening) }
-        check("keys: Return on the overview starts today's next item", started, "space \(state.space), phase \(stage.phase)")
+        check("keys: Return on 今天 starts today's next item", started, "space \(state.space), phase \(stage.phase)")
         try? await Task.sleep(for: .milliseconds(300))   // a person needs longer than this to reach Esc
         escape()
         let backToReady = await waitFor(2) { stage.phase == .ready }
@@ -282,7 +282,7 @@ extension E2E {
     /// A long random walk through the app; after every step the window must still draw.
     static func stress(state: AppState, recorder: Recorder, stage: StageModel) async {
         var rng = SystemRandomNumberGenerator()
-        let trays: [Tray] = [.settings, .history, .clips, .agenda, .newTopic, .addLink]
+        let trays: [Tray] = [.progress, .settings, .history, .clips, .agenda, .newTopic, .addLink]
         var failures: [String] = []
         let steps = 40
         for step in 1...steps {
@@ -365,11 +365,12 @@ extension E2E {
         await state.openTray(.history)
         check("first day: 全部记录 lists it", state.tray == .history && state.history.count == 1, "\(state.history.count) rows")
         state.closeTray()
-        await state.loadInsights()
-        await state.loadRecap()
-        check("first day: the overview's numbers load", state.insights != nil && state.recap != nil)
+        await state.openTray(.progress)
+        check("first day: 进展 opens with its numbers", state.tray == .progress && state.insights != nil && state.recap != nil && state.recent.count == 1,
+              "insights \(state.insights != nil), recap \(state.recap != nil), \(state.recent.count) rows")
+        state.closeTray()
         state.go(.home)
         try? await Task.sleep(for: .milliseconds(500))
-        check("first day: back on the overview", state.space == .home)
+        check("first day: back on 今天", state.space == .home)
     }
 }

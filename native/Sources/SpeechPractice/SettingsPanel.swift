@@ -134,7 +134,7 @@ struct StartSettings: View {
     @State private var loginError: String?
 
     var body: some View {
-        SettingsSection(title: L("开始练习", "Starting practice"), note: L("开始只需要一个动作：在任何地方按 ⌃⌥R，或者在总览按回车。", "Starting takes one move: press ⌃⌥R anywhere, or Return on the Overview.")) {
+        SettingsSection(title: L("开始练习", "Starting practice"), note: L("开始只需要一个动作：在任何地方按 ⌃⌥R，或者在「今天」按回车。", "Starting takes one move: press ⌃⌥R anywhere, or Return on Today.")) {
             SettingRow(title: L("全局快捷键 ⌃⌥R", "Global shortcut ⌃⌥R"), detail: hotkeyDetail) {
                 MeleteToggle(isOn: $hotkey)
             }
