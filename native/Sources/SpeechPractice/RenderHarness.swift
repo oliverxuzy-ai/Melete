@@ -274,7 +274,7 @@ enum RenderHarness {
                 if space == .home {
                     // Laid out at its full height, as in the scroll view, then cut. A fixed
                     // height alone squeezes the page and its cards draw over their footers.
-                    HomeContent().padding(.horizontal, 36).padding(.top, 22)
+                    HomeContent().padding(.horizontal, 36).padding(.top, 16)
                         .fixedSize(horizontal: false, vertical: true)
                         .frame(height: height - chrome.barHeight - 6, alignment: .top)
                         .clipped()

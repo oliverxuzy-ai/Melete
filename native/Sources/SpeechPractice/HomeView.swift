@@ -10,7 +10,7 @@ struct HomeView: View {
     var body: some View {
         ScrollView {
             HomeContent()
-                .padding(.horizontal, 36).padding(.top, 22).padding(.bottom, 36)
+                .padding(.horizontal, 36).padding(.top, 16).padding(.bottom, 36)
         }
         .scrollBounceBehavior(.basedOnSize)
         .task { await state.refreshToday(quiet: true) }
@@ -25,11 +25,11 @@ struct HomeContent: View {
         VStack(alignment: .leading, spacing: 0) {
             if let t = state.today {
                 HomeHeader(today: t)
-                TodayPlan(today: t).padding(.top, 18)
-                WeekLine(week: t.week).padding(.top, 14)
+                TodayPlan(today: t).padding(.top, 14)
+                WeekLine(week: t.week).padding(.top, 10)
                 // Within ten days a talk takes over the plan's third slot, so it is worth a line here.
                 if let ev = t.nextEvent, ev.daysLeft <= 10 { NextTalk(event: ev).padding(.top, 10) }
-                Doors(today: t).padding(.top, 18)
+                Doors(today: t).padding(.top, 12)
             } else {
                 HomeBooting().frame(maxWidth: .infinity, minHeight: 520)
             }
@@ -67,7 +67,7 @@ struct HomeHeader: View {
             }
             Text(longDate(today.date)).font(Typeface.display(30)).foregroundStyle(Palette.ink)
             Text(today.block.why).font(Typeface.italic(14)).foregroundStyle(Palette.ink2)
-                .lineSpacing(3).lineLimit(2)
+                .lineSpacing(2).lineLimit(2)
                 .fixedSize(horizontal: false, vertical: true)
                 .padding(.top, 2)
         }
@@ -107,7 +107,7 @@ struct TodayPlan: View {
             }
             StartBlock(today: today)
                 .frame(maxWidth: .infinity)
-                .padding(.top, 18)
+                .padding(.top, 14)
         }
         .padding(.horizontal, 20).padding(.top, 18).padding(.bottom, 16)
         .paper()
@@ -178,7 +178,7 @@ struct PlanRow: View {
                 Image(systemName: "chevron.right").font(.system(size: 10, weight: .semibold))
                     .foregroundStyle(hover ? Palette.kyanos : Palette.ink3)
             }
-            .padding(.horizontal, 8).padding(.vertical, 9)
+            .padding(.horizontal, 8).padding(.vertical, 8)
             .background(hover ? Palette.well.opacity(0.55) : .clear, in: RoundedRectangle(cornerRadius: Radius.chip, style: .continuous))
             .contentShape(Rectangle())
         }
@@ -353,7 +353,7 @@ struct Doors: View {
 
     private var shadowFooter: String {
         let n = state.shadowPractices.count
-        return n == 0 ? L("片段库还是空的", "No clips yet") : L("片段库 \(n) 段", "\(plural(n, "clip")) in the library")
+        return n == 0 ? L("片段库还是空的", "No clips yet") : L("片段库 \(n) 段", plural(n, "clip"))
     }
 
     private var topicFooter: String {
@@ -373,9 +373,9 @@ struct Door: View {
 
     var body: some View {
         Button { state.go(space) } label: {
-            HStack(alignment: .firstTextBaseline, spacing: 8) {
-                Text(space.label).font(Typeface.display(17)).foregroundStyle(Palette.ink)
-                Text(space.greek).font(Typeface.italic(12)).foregroundStyle(Palette.kyanos)
+            HStack(alignment: .firstTextBaseline, spacing: 7) {
+                Text(space.label).font(Typeface.display(17)).foregroundStyle(Palette.ink).fixedSize()
+                Text(space.greek).font(Typeface.italic(12)).foregroundStyle(Palette.kyanos).fixedSize()
                 Text(footer).font(Typeface.ui(11)).foregroundStyle(Palette.ink3).lineLimit(1)
                 Spacer(minLength: 6)
                 Text(shortcut).font(Typeface.ui(11)).foregroundStyle(Palette.ink3)
@@ -383,7 +383,7 @@ struct Door: View {
                     .foregroundStyle(hover ? Palette.kyanos : Palette.ink3)
                     .offset(x: hover ? 3 : 0)
             }
-            .padding(.horizontal, 16).padding(.vertical, 12)
+            .padding(.horizontal, 16).padding(.vertical, 10)
             .frame(maxWidth: .infinity)
             .overlay(RoundedRectangle(cornerRadius: Radius.tile, style: .continuous)
                 .strokeBorder(hover ? Palette.kyanos.opacity(0.5) : Palette.vein, lineWidth: 1))

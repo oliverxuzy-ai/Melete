@@ -143,7 +143,7 @@ struct TrayScroll<C: View>: View {
                 .padding(.horizontal, 28).padding(.top, 20).padding(.bottom, 40)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .fixedSize(horizontal: false, vertical: true)
-                .frame(maxHeight: .infinity, alignment: .top)
+                .frame(minHeight: 0, maxHeight: .infinity, alignment: .top)   // without minHeight the frame grows to the page
                 .clipped()
         } else {
             ScrollView {
