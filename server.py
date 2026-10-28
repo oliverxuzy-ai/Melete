@@ -748,6 +748,7 @@ def clip_card(p: dict) -> dict:
     return {
         "id": p["id"], "title": p["title"],
         "subtitle": clip.get("channel") or "",
+        "role": clip.get("role"),
         "duration": ref["duration_sec"] if ref else None,
         "wpm": ref["metrics"]["wpm"] if ref else None,
     }

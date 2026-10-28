@@ -402,7 +402,11 @@ final class Recorder {
         if fakeSource != nil, isRecording { liveWordCount = Int(elapsed * 2.4) }
         if ticks % 5 == 0 {   // once a second
             level = Float(meter.read())
-            liveWPM = elapsed > 5 ? (Double(liveWordCount) / (elapsed / 60)).rounded() : 0
+            // The words still being heard count too: the dictation recognizer used for
+            // shadowing on speakers can keep a whole take in one unfinished result.
+            // (The fake microphone sets its own count above.)
+            let words = fakeSource != nil ? liveWordCount : liveWordCount + Recorder.countUnits(liveVolatile)
+            liveWPM = elapsed > 5 ? (Double(words) / (elapsed / 60)).rounded() : 0
         }
     }
 
@@ -503,7 +507,10 @@ final class Recorder {
     /// Leaves an armed but unused session (closed during the countdown).
     func disarm() {
         generation += 1   // a setup still in flight discards what it made
-        guard isArmed, !isRecording else { return }
+        guard !isRecording else { return }
+        // New material is going on stage: the last take's captions belong to the old one.
+        liveSentences = []; liveVolatile = ""; liveWordCount = 0; liveWPM = 0; liveNote = nil; lastFinalChunk = ""
+        guard isArmed else { return }
         timer?.invalidate(); timer = nil
         isArmed = false
         meter.reset()

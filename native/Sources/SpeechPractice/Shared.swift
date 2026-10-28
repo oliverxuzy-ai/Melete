@@ -14,7 +14,9 @@ struct Tile: View {
         VStack(alignment: .leading, spacing: 5) {
             Text(label).font(Typeface.ui(12, .medium)).foregroundStyle(Palette.ink2).lineLimit(1)
             HStack(alignment: .firstTextBaseline, spacing: 4) {
+                // One line: "47 分 24 秒" broke after the numbers in a narrow tile.
                 Text(value).font(Typeface.display(27)).foregroundStyle(tone ?? Palette.ink).monospacedDigit()
+                    .lineLimit(1).minimumScaleFactor(0.6)
                 if !unit.isEmpty { Text(unit).font(Typeface.ui(12)).foregroundStyle(Palette.ink2) }
             }
             if !note.isEmpty {
@@ -200,6 +202,7 @@ final class PlayerModel {
         watchdog = Task { [weak self] in
             try? await Task.sleep(for: .seconds(2.5))
             guard let self, !Task.isCancelled, self.playing, abs(self.time - from) < 0.05, let url = self.currentURL else { return }
+            CaptureLog.write(String(format: "player stuck at %.2f s, reloaded", from))
             let r = self.rate
             self.load(url)
             self.setRate(r)

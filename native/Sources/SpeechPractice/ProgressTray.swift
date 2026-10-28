@@ -85,6 +85,11 @@ struct WeekPanel: View {
                 HoldToCommit(title: L("按住，承诺本周练 \(w.target) 天", "Hold to commit to \(w.target) days this week")) {
                     Task { await state.commitWeek() }
                 }
+            } else {
+                // The promise stays in view for the week, so holding the button visibly did something.
+                Label(L("已承诺本周练 \(w.target) 天", "Committed to \(w.target) days this week"), systemImage: "checkmark.seal")
+                    .font(Typeface.ui(13, .medium)).foregroundStyle(Palette.ochre)
+                    .padding(.vertical, 8)
             }
         }
         .frame(maxWidth: .infinity)

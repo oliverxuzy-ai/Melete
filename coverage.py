@@ -59,23 +59,25 @@ def same(a: str, b: str) -> bool:
 # ---------- script structure ----------
 
 def split_points(script: str) -> list[str]:
-    out: list[str] = []
+    """One point per line, and per sentence within a line. A short fragment (fewer than three
+    content units) is folded into the sentence before it on the same line; a short line of its
+    own stays a point, since the editor asks for one point per line."""
+    points: list[str] = []
     for line in script.splitlines():
         line = _BULLET.sub("", _SPEAKER.sub("", line)).strip()
         if not line:
             continue
+        merged: list[str] = []
         for s in re.split(r"(?<=[.!?;。！？；])\s*", line):
             s = s.strip()
-            if s and content(s):
-                out.append(s)
-    # fold fragments with fewer than 3 content units into the previous point
-    merged: list[str] = []
-    for s in out:
-        if merged and len(content(s)) < 3:
-            merged[-1] = merged[-1] + " " + s
-        else:
-            merged.append(s)
-    return merged
+            if not s or not content(s):
+                continue
+            if merged and len(content(s)) < 3:
+                merged[-1] = merged[-1] + " " + s
+            else:
+                merged.append(s)
+        points.extend(merged)
+    return points
 
 
 def extract_terms(script: str) -> list[str]:

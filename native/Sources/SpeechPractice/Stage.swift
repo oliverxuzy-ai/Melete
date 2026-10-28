@@ -28,6 +28,8 @@ final class StageModel {
     var activeSentence = -1
     let player = PlayerModel()
     var teleprompter = Teleprompter()
+    /// The language you speak in this take: it picks the live recognizer and the server's
+    /// Whisper model. It follows the material on stage (a Chinese script is spoken in Chinese).
     var language = "en"
     var startedAt: Date?
     /// A short line under the button when something did not go as asked (a recording too short
@@ -131,6 +133,7 @@ final class StageModel {
         mode = Mode(rawValue: item.kind) ?? .impromptu
         title = item.title
         prompt = item.prompt
+        if let p = item.prompt { language = StageModel.language(of: p) }
         hint = item.detail
         targetSeconds = Double(item.seconds)
         eyebrow = StageModel.eyebrow(for: item)
@@ -248,9 +251,39 @@ final class StageModel {
         }
     }
 
+    /// "zh" when a text is mostly Chinese, else "en" (the same test the server's coverage uses:
+    /// more CJK characters than Latin words).
+    static func language(of text: String) -> String {
+        let cjk = text.unicodeScalars.filter { (0x4E00...0x9FFF).contains($0.value) }.count
+        let latin = text.split(whereSeparator: { !($0.isASCII && $0.isLetter) }).count
+        return cjk > latin ? "zh" : "en"
+    }
+
+    /// What you will say decides the language: the clip's own language, else the script,
+    /// else the title of a script that is only a title.
+    private func adoptLanguage(of p: Practice) {
+        if let r = p.reference {
+            language = r.language.hasPrefix("zh") ? "zh" : "en"
+        } else if !p.script.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            language = StageModel.language(of: p.script)
+        } else if p.kind == nil || p.kind == "user" {
+            language = StageModel.language(of: p.title)
+        }
+    }
+
+    /// The script on stage was edited and saved: the stage shows the new text at once.
+    func practiceEdited(_ p: Practice) {
+        guard practice?.id == p.id, phase == .ready || phase == .result else { return }
+        practice = p
+        teleprompter.load(p.script)
+        adoptLanguage(of: p)
+        if item == nil { title = p.title }
+    }
+
     private func attachPractice(_ p: Practice) {
         StageModel.note("attach \(p.title.prefix(20)) mode \(mode.rawValue) phase \(phase)")
         practice = p
+        adoptLanguage(of: p)
         routeIsPrivate = AudioRoute.isPrivate
         teleprompter.load(p.script)
         if let api = state?.api, p.reference != nil {
@@ -273,6 +306,7 @@ final class StageModel {
         followsVoice = false
         heardThrough = false
         item = nil; practice = nil; prompt = nil; hint = nil; result = nil
+        language = "en"
         targetSeconds = nil; countdownFill = 0; activeSentence = -1
         phase = .ready
         teleprompter.load("")
@@ -847,9 +881,10 @@ struct FocusCell: View {
             }
             HStack(spacing: 6) {
                 Text(L("目标 \(metric.target)", "Target \(metric.target)")).font(Typeface.ui(11)).foregroundStyle(Palette.ink3)
+                // Change since the last take, said so: next to the target it read as the gap to it.
                 if let d = metric.delta, d != 0 {
-                    Text("\(d > 0 ? "↑" : "↓")\(fmt1(abs(d)))").font(Typeface.ui(11, .medium))
-                        .foregroundStyle(Palette.ink2)
+                    Text(L("比上次 \(d > 0 ? "↑" : "↓")\(fmt1(abs(d)))", "vs last \(d > 0 ? "↑" : "↓")\(fmt1(abs(d)))"))
+                        .font(Typeface.ui(11, .medium)).foregroundStyle(Palette.ink2)
                 }
             }
         }

@@ -34,7 +34,10 @@ if [ -z "$previous" ]; then
 else
   echo "## Changes"
   echo
-  changes=$(git log --no-merges --format='- %s (%h)' "$previous..HEAD")
+  # Only what people using the app would notice; docs, CI and chores stay in the full changelog.
+  changes=$(git log --no-merges --format='- %s (%h)' "$previous..HEAD" \
+    | grep -viE '^- (docs|ci|chore|tests?|build|refactor|style)(\([^)]*\))?!?:' \
+    | sed -E 's/^- (feat|fix|perf)(\([^)]*\))?!?: */- /' || true)
   if [ -n "$changes" ]; then echo "$changes"; else echo "Rebuilt with no code changes."; fi
   echo
   echo "**Full changelog**: https://github.com/$repo/compare/$previous...$tag"

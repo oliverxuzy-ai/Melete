@@ -238,6 +238,11 @@ struct StartBlock: View {
 
     private var caption: String {
         guard let n = today.nextItem else { return L("回车开始。三秒后自动录音。", "Press Return. Recording starts after three seconds.") }
+        // A retell opens with the original, so Return plays it rather than counting down.
+        if n.kind == "retell", n.practiceId != nil {
+            return L("回车先听原文，听完再复述，约 \(durationLabel(n.seconds))。",
+                     "Press Return to hear the original, then retell it: about \(durationLabel(n.seconds)).")
+        }
         return L("回车开始\(n.kindLabel)，约 \(durationLabel(n.seconds))。三秒后自动录音。",
                  "Press Return: \(n.kindLabel.lowercased()), about \(durationLabel(n.seconds)). Recording starts after three seconds.")
     }
