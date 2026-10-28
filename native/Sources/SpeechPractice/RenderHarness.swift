@@ -26,6 +26,7 @@ enum RenderHarness {
 
         var pages: [(String, CGFloat, CGFloat?, () -> AnyView)] = [
             ("home", 1200, nil, { AnyView(HomeContent().padding(.horizontal, 36).padding(.vertical, 20)) }),
+            ("progress", 1000, nil, { AnyView(ProgressTray().padding(28)) }),
             ("topbar", 1200, 70, { AnyView(topBar()) }),
             ("settings", 900, nil, { AnyView(settingsSheet().padding(28)) }),
             ("history", 1000, nil, { AnyView(HistoryTray().padding(28)) }),
@@ -37,6 +38,7 @@ enum RenderHarness {
             ("menubar", 320, nil, { AnyView(MenuBarContent()) }),
             ("window-home", 1200, 840, { AnyView(window(state: state, space: .home, height: 840)) }),
             ("window-home-min", 1040, 700, { AnyView(window(state: state, space: .home, height: 700)) }),
+            ("window-progress-min", 1040, 700, { AnyView(window(state: state, space: .home, height: 700, tray: .progress)) }),
         ]
         if let s = await shadowStage(stage: stage, recorder: recorder, state: state) {
             pages.append(("studio-shadow", 1200, 780, { AnyView(s) }))
@@ -259,19 +261,20 @@ enum RenderHarness {
         .padding(.leading, 9).padding(.top, 9)
     }
 
-    /// The whole window as it is laid out: the top bar over the place, both under the lights.
-    /// The page is cut at the window's height, as the real one scrolls (a ScrollView draws
-    /// blank here).
-    static func window(state: AppState, space: Space, height: CGFloat) -> some View {
+    /// The whole window as it is laid out: the top bar over the place, both under the lights,
+    /// and a tray over them when one is named. The page is cut at the window's height, as the
+    /// real one scrolls (a ScrollView draws blank here).
+    static func window(state: AppState, space: Space, height: CGFloat, tray: Tray? = nil) -> some View {
         let chrome = WindowChrome()
         state.space = space
+        state.tray = tray
         if space != .home { state.studio = space }
         return ZStack(alignment: .topLeading) {
             Group {
                 if space == .home {
                     // Laid out at its full height, as in the scroll view, then cut. A fixed
                     // height alone squeezes the page and its cards draw over their footers.
-                    HomeContent().padding(.horizontal, 36)
+                    HomeContent().padding(.horizontal, 36).padding(.top, 22)
                         .fixedSize(horizontal: false, vertical: true)
                         .frame(height: height - chrome.barHeight - 6, alignment: .top)
                         .clipped()
@@ -280,6 +283,7 @@ enum RenderHarness {
                 }
             }
             .padding(.top, chrome.barHeight + 6)
+            TrayHost(topInset: chrome.barHeight)
             TopBarView(chrome: chrome)
             trafficLights()
         }

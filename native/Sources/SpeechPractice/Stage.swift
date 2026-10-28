@@ -213,7 +213,7 @@ final class StageModel {
         }
         let items = state?.today?.items ?? []
         let mine = items.filter { Space.of(kind: $0.kind) == space }
-        // Filling a studio never moves you: it may be the one waiting behind the overview.
+        // Filling a studio never moves you: it may be the one waiting behind 今天.
         if let it = mine.first(where: { !$0.done }) ?? mine.first {
             present(item: it, autoStart: false, navigate: false)
         } else if space == .shadow, let c = state?.clipPractices.max(by: { ($0.clip?.date ?? "") < ($1.clip?.date ?? "") }) {
@@ -280,7 +280,7 @@ final class StageModel {
 
     // MARK: flow
 
-    /// Started from the overview, retelling opens with the original; a press of 开始复述 or
+    /// Started from 今天, retelling opens with the original; a press of 开始复述 or
     /// 再复述一遍 (`force`) goes straight to your turn. Everything else fills the water clock.
     private func begin(force: Bool = false) {
         if mode == .retell, practice?.reference != nil, !force {
@@ -480,8 +480,8 @@ final class StageModel {
                                          scenario: scenario, practiceId: practice?.id, drill: drill,
                                          onError: { [weak self] message in self?.showNotice(message) })
         guard token == presentID else {
-            if let r = session?.review { showNotice(L("刚才那一段：\(r.headline)。完整分析在总览的记录里。",
-                                                      "That last take: \(r.headline). The full analysis is in the record on the Overview.")) }
+            if let r = session?.review { showNotice(L("刚才那一段：\(r.headline)。完整分析在「进展」的记录里。",
+                                                      "That last take: \(r.headline). The full analysis is in the record under Progress.")) }
             return
         }
         if let session {

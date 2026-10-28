@@ -34,16 +34,21 @@ So Melete opens on today's next exercise. Press <kbd>Return</kbd>, a water clock
 
 ### One window, three places
 
-- **Overview.** This week's laurel in the middle. On the left, how you're trending (pace, filler words, pitch range, key-point coverage). On the right, your rhythm (minutes per day, streak, the next talk on your agenda).
+- **Today.** What to practice today, in order, with the next item marked and one button to start it. Below it, one line for the week (seven leaves, how many days to go) and, within ten days of a talk, the talk. Everything fits on one screen.
+- **Progress**, a panel that rises over any place: click the small laurel at the top, or press <kbd>⌘</kbd><kbd>4</kbd>. This week (the laurel, minutes per day, your streak, the weekly recap), how you're trending (pace, filler words, pitch range, key-point coverage; what the current training block works on comes first), your latest takes, and the year.
 - **Shadow.** Listen to how a real speaker says it, then speak along or retell it in your own words. Tap any line of the transcript to start from there. With speakers, the original stays quiet while you record and the subtitles follow *your* voice, using on-device recognition with about 0.3 s of lag. With headphones, the original plays in your ears and the subtitles follow it.
 - **Topic.** Speak to a prompt, a script, or a meeting you're preparing for.
 
 <p align="center">
-  <img src=".github/assets/screenshots/en/window-home-min-light.png" width="32%" alt="The Overview: this week's laurel in the middle, your trends on the left, your rhythm and the next talk on the right">
-  <img src=".github/assets/screenshots/en/window-retell-min-light.png" width="32%" alt="Retell: today's argument clip, ready to be retold in your own words">
-  <img src=".github/assets/screenshots/en/window-verdict-min-light.png" width="32%" alt="The critique card after an impromptu take: a one-line verdict, four numbers and two things to try">
+  <img src=".github/assets/screenshots/en/window-home-min-light.png" width="49%" alt="Today: the date and training block, today's plan with the next item marked, the start button, and one line for the week">
+  <img src=".github/assets/screenshots/en/window-progress-min-light.png" width="49%" alt="The Progress panel: this week's laurel, minutes per day and streak beside the weekly recap">
   <br>
-  <sub>The Overview · Retelling a clip in your own words · The note you get after every take</sub>
+  <sub>Today · Progress, opened from the laurel at the top</sub>
+  <br><br>
+  <img src=".github/assets/screenshots/en/window-retell-min-light.png" width="49%" alt="Retell: today's argument clip, ready to be retold in your own words">
+  <img src=".github/assets/screenshots/en/window-verdict-min-light.png" width="49%" alt="The critique card after an impromptu take: a one-line verdict, four numbers and two things to try">
+  <br>
+  <sub>Retelling a clip in your own words · The note you get after every take</sub>
 </p>
 
 ### Feedback that tells you one thing
@@ -100,9 +105,9 @@ After that Melete keeps itself up to date. When a new release is out it says so 
 
 ## Quick start
 
-1. Melete opens on **Overview**. Press <kbd>Return</kbd> to jump to today's next item. The water clock fills for three seconds, then recording starts.
+1. Melete opens on **Today**. Press <kbd>Return</kbd> to jump to today's next item. The water clock fills for three seconds, then recording starts.
 2. Press <kbd>Space</kbd> to stop. The critique card appears, and **Next** takes you to the next item. Not happy halfway through? Press <kbd>Esc</kbd> and the take is neither saved nor analyzed.
-3. Finishing any one item counts as practicing today.
+3. Finishing any one item counts as practicing today: 20 seconds of recording does it, and listening to an original counts half. The laurel, the streak and the recap all count days this way.
 
 | Shortcut | Action |
 |---|---|
@@ -110,8 +115,8 @@ After that Melete keeps itself up to date. When a new release is out it says so 
 | <kbd>Space</kbd> | Stop recording |
 | <kbd>Esc</kbd> | Discard the take, or close a panel |
 | <kbd>⌘</kbd><kbd>R</kbd> | Start or stop recording |
-| <kbd>⌘</kbd><kbd>1</kbd> to <kbd>⌘</kbd><kbd>3</kbd> | Overview, Shadow, Topic |
-| <kbd>⌘</kbd><kbd>4</kbd> | All recordings |
+| <kbd>⌘</kbd><kbd>1</kbd> to <kbd>⌘</kbd><kbd>3</kbd> | Today, Shadow, Topic |
+| <kbd>⌘</kbd><kbd>4</kbd> | Progress |
 | <kbd>⌘</kbd><kbd>N</kbd> | New script |
 | <kbd>⌘</kbd><kbd>,</kbd> | Settings |
 | <kbd>⌃</kbd><kbd>⌥</kbd><kbd>R</kbd> | Start today's next item from any app |
@@ -215,7 +220,7 @@ Test the clip pipeline offline:
 
 | Path | What it is |
 |---|---|
-| `native/` | The SwiftUI app. `Theme.swift` holds the design tokens; `Components.swift` the water clock, laurel and pace gauge; `RootView.swift` the window and top navigation; `HomeView.swift` the Overview; `StudioView.swift` the Shadow and Topic studios; `Stage.swift` the stage and critique card; `Trays.swift` the panels; `SettingsPanel.swift` Settings; `SystemIntegration.swift` notifications, the global hotkey, launch at login and the menu bar; `L10n.swift` the interface language; `E2E*.swift` the end-to-end tests. |
+| `native/` | The SwiftUI app. `Theme.swift` holds the design tokens; `Components.swift` the water clock, laurel and pace gauge; `RootView.swift` the window and top navigation; `HomeView.swift` Today; `ProgressTray.swift` the Progress panel; `StudioView.swift` the Shadow and Topic studios; `Stage.swift` the stage and critique card; `Trays.swift` the panels; `SettingsPanel.swift` Settings; `SystemIntegration.swift` notifications, the global hotkey, launch at login and the menu bar; `L10n.swift` the interface language; `E2E*.swift` the end-to-end tests. |
 | `server.py` | FastAPI server |
 | `coach.py` | Training cycle, targets, prompts, daily plan, agenda, critique, weekly review |
 | `daily.py` | Daily clip pipeline and background job |

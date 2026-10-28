@@ -600,7 +600,6 @@ def delete_reference(pid: str):
 # ---------- API: activity ledger (listening time) and insights ----------
 
 ACTIVITY = paths.ACTIVITY_DIR
-ACTIVE_MIN_SEC = 30  # a day counts as active with at least this much recording or listening
 
 
 @app.post("/api/activity")
@@ -668,7 +667,8 @@ def insights(days: int = 371):
         pp = prac(s.get("practice_id"))
         pp["record_count"] += 1
         pp["record_sec"] += s["duration_sec"]
-    for e in load_activity():
+    activity = load_activity()
+    for e in activity:
         d = day(e["at"][:10])
         pp = prac(e.get("practice_id"))
         if e["kind"] == "listen_reference":
@@ -698,7 +698,8 @@ def insights(days: int = 371):
         st["total_sec"] = round(st["record_sec"] + st["listen_ref_sec"] + st["listen_self_sec"], 1)
         series.append(st)
 
-    active_days = {d for d, st in day_stats.items() if st["record_sec"] + st["listen_ref_sec"] + st["listen_self_sec"] >= ACTIVE_MIN_SEC}
+    # The same rule as the laurel (coach.PRACTICED_SEC), so the streak and the week agree.
+    active_days = coach.practiced_days(sessions, activity)
     streak, cursor = 0, today
     if today.isoformat() not in active_days:
         cursor = today - timedelta(days=1)
@@ -724,8 +725,11 @@ def insights(days: int = 371):
         "longest_streak": longest,
         "first_day": min(day_stats) if day_stats else None,
     }
-    week = [st for st in series[-7:]]
-    prev_week = [st for st in series[-14:-7]]
+    # Calendar weeks from Monday, the same weeks as the laurel and the recap.
+    start = coach.monday(today)
+    prev_start = (start - timedelta(days=7)).isoformat()
+    week = [st for st in series if st["date"] >= start.isoformat()]
+    prev_week = [st for st in series if prev_start <= st["date"] < start.isoformat()]
     totals["this_week_sec"] = round(sum(st["total_sec"] for st in week), 1)
     totals["last_week_sec"] = round(sum(st["total_sec"] for st in prev_week), 1)
     return {"days": series, "totals": totals,

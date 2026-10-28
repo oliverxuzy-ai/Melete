@@ -149,8 +149,10 @@ struct SpeechPracticeApp: App {
                         .disabled(stage.isActive)
                 }
                 Divider()
-                Button(L("全部记录", "All Takes")) { Task { await state.openTray(.history) } }
+                Button(L("进展", "Progress")) { Task { await state.openTray(.progress) } }
                     .keyboardShortcut("4", modifiers: .command)
+                    .disabled(stage.isActive)
+                Button(L("全部记录", "All Takes")) { Task { await state.openTray(.history) } }
                     .disabled(stage.isActive)
             }
         }

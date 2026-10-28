@@ -93,6 +93,7 @@ struct TraySheet: View {
         case .history: return L("全部记录", "All takes")
         case .clips: return L("全部片段", "All clips")
         case .agenda: return L("议程", "Agenda")
+        case .progress: return L("进展", "Progress")
         }
     }
 
@@ -110,6 +111,7 @@ struct TraySheet: View {
         case .history: return L("\(state.history.count) 次录音", plural(state.history.count, "recording"))
         case .clips: return L("每天从演讲里挑一到两段", "One or two passages picked from talks every day")
         case .agenda: return L("要讲的场合，每一场倒排六步准备", "Talks you have coming up, each prepped in six steps counted back")
+        case .progress: return L("本周、走势、记录和这一年", "This week, trends, the record and the year")
         }
     }
 
@@ -124,6 +126,7 @@ struct TraySheet: View {
         case .history: TrayScroll { HistoryTray() }
         case .clips: TrayScroll { ClipsContent() }
         case .agenda: TrayScroll { AgendaContent() }
+        case .progress: TrayScroll { ProgressTray() }
         }
     }
 }
@@ -131,12 +134,23 @@ struct TraySheet: View {
 /// Scrolling body of a tray, with the page margins every tray shares.
 struct TrayScroll<C: View>: View {
     @ViewBuilder var content: C
+    @Environment(\.renderMode) private var renderMode
 
     var body: some View {
-        ScrollView {
+        if renderMode {
+            // Offscreen a scroll view draws blank, so the render harness gets the top of the page.
             content
                 .padding(.horizontal, 28).padding(.top, 20).padding(.bottom, 40)
                 .frame(maxWidth: .infinity, alignment: .leading)
+                .fixedSize(horizontal: false, vertical: true)
+                .frame(maxHeight: .infinity, alignment: .top)
+                .clipped()
+        } else {
+            ScrollView {
+                content
+                    .padding(.horizontal, 28).padding(.top, 20).padding(.bottom, 40)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
         }
     }
 }

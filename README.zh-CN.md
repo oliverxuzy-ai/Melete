@@ -34,16 +34,21 @@
 
 ### 一个窗口，三个地方
 
-- **总览**：本周的桂冠居中，左边是自己讲的表现走势（语速、填充词、音高起伏、要点覆盖），右边是节奏（这周每天几分钟、连续天数、下一场要讲的会）。
+- **今天**：今天要练的几项按顺序排好，下一项标出来，一个按钮开始。下面一行是本周进度（七片叶子、还差几天），离要讲的会十天以内时再加一行。一屏放得下，不用滚动。
+- **进展**：从任何地方升起的面板，点顶栏的小桂冠或按 <kbd>⌘</kbd><kbd>4</kbd> 打开。里面是本周（桂冠、每天几分钟、连续天数、本周小结）、表现走势（语速、填充词、音高起伏、要点覆盖，当前训练块练的排在前面）、最近的记录和这一年。
 - **跟读**：先听别人怎么讲，再跟着讲，或者听完用自己的话复述。点原文的任意一句，就从那一句开始听。用扬声器外放时，录音期间原声不放，字幕跟着你的声音走（本机实时识别，约 0.3 秒）；戴耳机时原声在耳机里同步播放，字幕跟原声。
 - **主题**：围绕一个题目、讲稿或要讲的会，自己讲。
 
 <p align="center">
-  <img src=".github/assets/screenshots/zh/window-home-min-light.png" width="32%" alt="总览：本周的桂冠居中，左边是自己的表现走势，右边是节奏和下一场要讲的会">
-  <img src=".github/assets/screenshots/zh/window-retell-min-light.png" width="32%" alt="复述：今天的论证片段，准备用自己的话复述">
-  <img src=".github/assets/screenshots/zh/window-verdict-min-light.png" width="32%" alt="即兴讲完后的点评卡：一句结论、四个数字和两条下次可以试的">
+  <img src=".github/assets/screenshots/zh/window-home-min-light.png" width="49%" alt="今天：日期和训练块，今天的安排（标出下一项），开始按钮，和一行本周进度">
+  <img src=".github/assets/screenshots/zh/window-progress-min-light.png" width="49%" alt="进展面板：本周的桂冠、每天几分钟和连续天数，旁边是本周小结">
   <br>
-  <sub>总览 · 用自己的话复述一段片段 · 每讲完一段给你的点评</sub>
+  <sub>今天 · 点顶栏小桂冠打开的进展</sub>
+  <br><br>
+  <img src=".github/assets/screenshots/zh/window-retell-min-light.png" width="49%" alt="复述：今天的论证片段，准备用自己的话复述">
+  <img src=".github/assets/screenshots/zh/window-verdict-min-light.png" width="49%" alt="即兴讲完后的点评卡：一句结论、四个数字和两条下次可以试的">
+  <br>
+  <sub>用自己的话复述一段片段 · 每讲完一段给你的点评</sub>
 </p>
 
 ### 点评只说一件事
@@ -100,9 +105,9 @@
 
 ## 快速上手
 
-1. 打开 App 停在**总览**。按回车，直接进入今天下一项所在的那一边，水钟注满三秒后自动开始录音。
+1. 打开 App 停在**今天**。按回车，直接进入今天下一项所在的那一边，水钟注满三秒后自动开始录音。
 2. 按空格停止。讲完出现点评卡，“下一项”直接进入下一段。讲到一半不满意，按 Esc，这一段不保存也不分析。
-3. 完成任意一项就算今天练过。
+3. 完成任意一项就算今天练过：录满 20 秒就算，听原文算一半时间。桂冠、连续天数和周小结都按这一个标准数天。
 
 | 快捷键 | 作用 |
 |---|---|
@@ -110,8 +115,8 @@
 | <kbd>Space</kbd> | 停止录音 |
 | <kbd>Esc</kbd> | 放弃这段，或收起面板 |
 | <kbd>⌘</kbd><kbd>R</kbd> | 开始或停止录音 |
-| <kbd>⌘</kbd><kbd>1</kbd> 到 <kbd>⌘</kbd><kbd>3</kbd> | 总览、跟读、主题 |
-| <kbd>⌘</kbd><kbd>4</kbd> | 全部记录 |
+| <kbd>⌘</kbd><kbd>1</kbd> 到 <kbd>⌘</kbd><kbd>3</kbd> | 今天、跟读、主题 |
+| <kbd>⌘</kbd><kbd>4</kbd> | 进展 |
 | <kbd>⌘</kbd><kbd>N</kbd> | 新讲稿 |
 | <kbd>⌘</kbd><kbd>,</kbd> | 设置 |
 | <kbd>⌃</kbd><kbd>⌥</kbd><kbd>R</kbd> | 在任何应用里开始今天的下一项 |
@@ -215,7 +220,7 @@ cd Melete
 
 | 路径 | 是什么 |
 |---|---|
-| `native/` | SwiftUI App。`Theme.swift` 是设计令牌，`Components.swift` 是水钟、桂冠、语速刻度等组件，`RootView.swift` 是窗口和顶部导航，`HomeView.swift` 是总览，`StudioView.swift` 是跟读和主题两个工作室，`Stage.swift` 是讲台和点评卡，`Trays.swift` 是底部抽屉，`SettingsPanel.swift` 是设置，`SystemIntegration.swift` 是通知、全局快捷键、开机启动和菜单栏，`L10n.swift` 是界面语言，`E2E*.swift` 是端到端测试 |
+| `native/` | SwiftUI App。`Theme.swift` 是设计令牌，`Components.swift` 是水钟、桂冠、语速刻度等组件，`RootView.swift` 是窗口和顶部导航，`HomeView.swift` 是今天页，`ProgressTray.swift` 是进展面板，`StudioView.swift` 是跟读和主题两个工作室，`Stage.swift` 是讲台和点评卡，`Trays.swift` 是底部抽屉，`SettingsPanel.swift` 是设置，`SystemIntegration.swift` 是通知、全局快捷键、开机启动和菜单栏，`L10n.swift` 是界面语言，`E2E*.swift` 是端到端测试 |
 | `server.py` | FastAPI 服务 |
 | `coach.py` | 训练周期、目标、题库、今日计划、议程、点评、周报 |
 | `daily.py` | 每日片段流水线和后台任务 |
