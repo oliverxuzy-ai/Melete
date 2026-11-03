@@ -314,6 +314,10 @@ struct NewTopicForm: View {
             TextField(L("讲什么，比如 数据管道选型", "What about? e.g. choosing a data pipeline"), text: $title)
                 .textFieldStyle(.plain).font(Typeface.display(26)).foregroundStyle(Palette.ink)
             Hairline()
+            if trimmedTitle.isEmpty && !scriptTitle.isEmpty {
+                Text(L("题目可以不填，会用讲稿第一句：\(scriptTitle)", "No title needed. The first line will be used: \(scriptTitle)"))
+                    .font(Typeface.ui(12)).foregroundStyle(Palette.ink3).lineLimit(1).truncationMode(.tail)
+            }
             VStack(alignment: .leading, spacing: 8) {
                 FieldLabel(title: L("场合", "Occasion"))
                 ChoiceChips(options: Scenario.allCases, selection: $scenario) { $0.label }
@@ -325,22 +329,34 @@ struct NewTopicForm: View {
                 PaperEditor(text: $script, placeholder: L("一行一个要点，或者整段讲稿", "One point per line, or a whole script"), minHeight: 260)
             }
             HStack(spacing: 12) {
+                if !canCreate {
+                    Text(L("写个题目，或者贴上要点，就能创建", "Add a title or some points to create"))
+                        .font(Typeface.ui(12)).foregroundStyle(Palette.ink3)
+                }
                 Spacer()
                 Button(L("取消", "Cancel")) { state.closeTray() }.buttonStyle(InkButtonStyle(color: Palette.ink2))
                 Button { create() } label: { Text(L("创建，放上讲台", "Create and put on stage")).padding(.horizontal, 6) }
                     .primaryGlass()
                     .keyboardShortcut(.return, modifiers: .command)
-                    .disabled(title.trimmingCharacters(in: .whitespaces).isEmpty || saving)
+                    .disabled(!canCreate || saving)
                 Text("⌘↩").font(Typeface.ui(11)).foregroundStyle(Palette.ink3)
             }
         }
         .frame(maxWidth: 760, alignment: .leading)
     }
 
+    private var trimmedTitle: String { title.trimmingCharacters(in: .whitespacesAndNewlines) }
+    private var scriptTitle: String { titleFromScript(script) }
+    /// A title or a script is enough. A long pasted script pushes the title field out of
+    /// view, so requiring the title left the button grey with no visible reason.
+    private var canCreate: Bool { !trimmedTitle.isEmpty || !scriptTitle.isEmpty }
+
     private func create() {
+        guard canCreate, !saving else { return }
         saving = true
+        let name = trimmedTitle.isEmpty ? scriptTitle : trimmedTitle
         Task {
-            if let id = await state.createPractice(title: title, scenario: scenario.rawValue, script: script),
+            if let id = await state.createPractice(title: name, scenario: scenario.rawValue, script: script),
                let p = await state.fetchPractice(id) {
                 state.closeTray()
                 stage.present(practice: p, mode: .free, autoStart: false)
@@ -348,6 +364,27 @@ struct NewTopicForm: View {
             saving = false
         }
     }
+}
+
+/// A title taken from the first line of a script, for when the title field is left empty.
+/// Drops a leading "1:", "2.", "3、" or bullet, and cuts long lines at a word.
+func titleFromScript(_ script: String) -> String {
+    guard let line = script.split(whereSeparator: \.isNewline)
+        .map({ $0.trimmingCharacters(in: .whitespaces) })
+        .first(where: { !$0.isEmpty }) else { return "" }
+    var s = Substring(line)
+    if let r = line.range(of: #"^(\d+\s*[:：、)）]|\d+\.(?=\s)|[-•*·](?=\s))\s*"#, options: .regularExpression) {
+        s = line[r.upperBound...]
+    }
+    s = s.drop(while: { $0.isWhitespace })
+    if s.isEmpty { s = Substring(line) }
+    let cap = 40
+    guard s.count > cap else { return String(s) }
+    let head = s.prefix(cap)
+    if let space = head.lastIndex(of: " "), head.distance(from: head.startIndex, to: space) >= 16 {
+        return String(head[..<space]) + "…"
+    }
+    return String(head) + "…"
 }
 
 struct NewEventForm: View {
